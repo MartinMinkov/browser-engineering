@@ -7,6 +7,7 @@
 VENV_NAME?= .venv
 PYTHON=${VENV_NAME}/bin/python
 PIP=${VENV_NAME}/bin/pip
+ARGS?=
 
 # By default, it runs `example1.py`. But you can override it with:
 # make run-example EXAMPLE=example2
@@ -27,7 +28,8 @@ clean:
 
 ## run-main: Run the main.py script in browser-engineering
 run-main:
-	${PYTHON} src/browser-engineering/main.py
+	export PYTHONPATH=../:${PYTHONPATH}; \
+  ${PYTHON} src/browser-engineering/main.py $(ARGS)
 
 ## run-example: Run the given example script in examples
 run-example:

@@ -18,7 +18,7 @@ class URL:
         s.send(
             (
                 "GET {} HTTP/1.0\r\n".format(self.path)
-                + "Host: {}\r\n\r\n".format(self.host())
+                + "Host: {}\r\n\r\n".format(self.host)
             ).encode("utf8")
         )
         response = s.makefile("r", encoding="utf8", newline="\r\n")
