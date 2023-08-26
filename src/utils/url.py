@@ -1,4 +1,5 @@
 import socket
+import ssl
 
 
 class URL:
@@ -14,6 +15,8 @@ class URL:
         s = socket.socket(
             family=socket.AF_INET, type=socket.SOCK_STREAM, proto=socket.IPPROTO_TCP
         )
+        ctx = ssl.create_default_context()
+        s = ctx.wrap_socket(s, server_hostname=self.host)
         s.connect((self.host, 80))
         s.send(
             (
