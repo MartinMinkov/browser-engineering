@@ -1,8 +1,18 @@
+from enum import Enum
+
 from src.networking.headers import Headers
 from src.networking.http_client import HTTPClient
 from src.networking.request import Request
 from src.utils.url import URL, Scheme
 from src.view.view import View
+
+
+class HTMLEntity(Enum):
+    GreaterThan = "&gt;"
+    LessThan = "&lt;"
+
+    def __str__(self):
+        return self.name.lower()
 
 
 class HTMLView(View):
@@ -12,23 +22,34 @@ class HTMLView(View):
         self.url = url
 
     def show(self, document: str):
-        in_angle = False
-        in_body = False
-        body_tag_str = "body"
-        for idx, c in enumerate(document):
-            if c == "<":
-                in_angle = True
-                if document[idx + 1 : idx + 1 + len(body_tag_str)] == body_tag_str:
-                    in_body = True
-            elif c == ">":
-                in_angle = False
-                if (
-                    document[idx - len(body_tag_str) : idx] == body_tag_str
-                    and document[idx - len(body_tag_str) - 1] == "/"
-                ):
-                    in_body = False
-            elif in_body and not in_angle:
-                print(c, end="")
+        inside_body_tag = False
+        in_angle_brackets = False
+        for idx, char in enumerate(document):
+            if char == "<":
+                if self._is_start_of_tag(document, idx, "body"):
+                    inside_body_tag = True
+                elif self._is_start_of_tag(document, idx, "/body"):
+                    inside_body_tag = False
+                continue
+
+            if char == ">":
+                in_angle_brackets = False
+                continue
+
+            if inside_body_tag and not in_angle_brackets:
+                char = self._replace_html_entities(char, document, idx)
+                print(char, end="")
+
+    def _is_start_of_tag(self, document: str, idx: int, tag: str) -> bool:
+        return document[idx : idx + len(tag) + 1] == f"<{tag}"
+
+    def _replace_html_entities(self, char: str, document: str, idx: int) -> str:
+        if char == "&":
+            if document.startswith(HTMLEntity.GreaterThan.value, idx):
+                return ">"
+            elif document.startswith(HTMLEntity.LessThan.value, idx):
+                return "<"
+        return char
 
     def load(self):
         headers = Headers.default(self.url.host)
