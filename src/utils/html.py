@@ -1,7 +1,6 @@
-from src.utils.headers import Headers
-from src.utils.http_client import HTTPClient
-from src.utils.request import Request
-from src.utils.response import Response
+from src.networking.headers import Headers
+from src.networking.http_client import HTTPClient
+from src.networking.request import Request
 from src.utils.url import URL
 
 

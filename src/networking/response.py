@@ -1,4 +1,4 @@
-from src.utils.headers import Headers
+from src.networking.headers import Headers
 
 
 class Response:

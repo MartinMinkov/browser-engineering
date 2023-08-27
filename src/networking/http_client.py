@@ -1,9 +1,9 @@
 import socket
 import ssl
 
-from src.utils.headers import Headers
-from src.utils.request import Request
-from src.utils.response import Response
+from src.networking.headers import Headers
+from src.networking.request import Request
+from src.networking.response import Response
 from src.utils.url import URL
 
 

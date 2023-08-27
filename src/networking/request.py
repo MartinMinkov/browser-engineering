@@ -1,7 +1,4 @@
-import socket
-import ssl
-
-from src.utils.headers import Headers
+from src.networking.headers import Headers
 from src.utils.url import URL
 
 
