@@ -1,5 +1,6 @@
 import socket
 import ssl
+from src.utils.headers import Headers
 
 
 class URL:
@@ -44,15 +45,21 @@ class URL:
         version, status, explanation = statusline.split(" ", 2)
         assert status == "200", "{}: {}".format(status, explanation)
 
-        headers = {}
+        headers = Headers()
         while True:
             line = response.readline()
             if line == "\r\n":
                 break
             header, value = line.split(":", 1)
-            headers[header.lower()] = value.strip()
-            assert "transfer-encoding" not in headers
-            assert "content-encoding" not in headers
+            headers.add_header(header, value)
+            assert "transfer-encoding" not in headers.headers
+            assert "content-encoding" not in headers.headers
+
+        encoding = "utf8"
+        if "content-type" in headers.headers and "charset=" in headers.get_header(
+            "content-type"
+        ):
+            encoding = headers.get_header("content-type").split("charset=")[-1]
 
         body = response.read()
         s.close()
