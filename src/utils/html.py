@@ -17,10 +17,10 @@ def show(body: str):
 
 def load(url: URL):
     headers = Headers.default(url.host)
-    requset = Request(url, headers=headers)
+    request = Request(url, headers=headers)
 
     http_client = HTTPClient(url)
-    response = http_client.send_request(requset)
+    response = http_client.send_request(request)
 
     assert response.status_code == 200, "{}: {}".format(
         response.status_code, response.reason_phrase
