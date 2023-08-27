@@ -51,7 +51,8 @@ class URL(AbstractURL):
 class DataURL(AbstractURL):
     def __init__(self, url: str):
         scheme, url = url.split(":", 1)
-        if scheme != Scheme.Data:
+        self.scheme = Scheme(scheme)
+        if self.scheme != Scheme.Data:
             raise ValueError("Invalid data URL")
 
         self.media_type = "text/plain;charset=US-ASCII"
@@ -62,8 +63,8 @@ class DataURL(AbstractURL):
 
         if "base64" in url:
             self.is_base64 = True
-            url = url.split(",", 1)[1]
 
+        url = url.split(",", 1)[1]
         self.data = url
 
     def __str__(self):

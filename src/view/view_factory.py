@@ -1,4 +1,5 @@
 from src.utils.url import URL, AbstractURL, DataURL, Scheme
+from src.view.data_view import DataView
 from src.view.file_view import FileView
 from src.view.html_view import HTMLView
 from src.view.view import View
@@ -13,5 +14,5 @@ class ViewFactory:
             elif url.scheme in {Scheme.HTTP, Scheme.HTTPS}:
                 return HTMLView(url)
         elif isinstance(url, DataURL):
-            raise ValueError(f"Data URL is not supported atm: {type(url)}")
+            return DataView(url)
         raise ValueError(f"Unsupported URL type: {type(url)}")
