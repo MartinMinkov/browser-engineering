@@ -32,7 +32,7 @@ class HTMLView:
         assert "transfer-encoding" not in response.headers
         assert "content-encoding" not in response.headers
 
-        encoding = "utf8"
+        encoding = http_client.encoding
         if (
             "content-type" in response.headers
             and "charset=" in response.headers.get_header("content-type")
