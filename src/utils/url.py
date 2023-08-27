@@ -1,6 +1,7 @@
 import socket
 import ssl
 from src.utils.headers import Headers
+from src.utils.request import Request
 
 
 class URL:
@@ -31,19 +32,10 @@ class URL:
         if self.scheme == "https":
             ctx = ssl.create_default_context()
             s = ctx.wrap_socket(s, server_hostname=self.host)
-        request_headers = Headers()
-        request_headers.add_header("host", self.host)
-        request_headers.add_header("user-agent", "browser-engineering")
-        request_headers.add_header("connection", "close")
-        request_headers.add_header("accept", "*/*")
-        request_headers.add_header("accept-encoding", "gzip")
+
+        socket_request = Request(self.path, "GET", Headers.default(self.host))
         s.connect((self.host, self.port))
-        s.send(
-            (
-                "GET {} HTTP/1.0\r\n".format(self.path)
-                + "{}\r\n\r\n".format(request_headers.to_string())
-            ).encode("utf8")
-        )
+        s.send((str(socket_request)).encode("utf8"))
 
         response = s.makefile("r", encoding="utf8", newline="\r\n")
         statusline = response.readline()
