@@ -1,14 +1,8 @@
-from src.utils.url import URL, Scheme
-from src.view.file_view import FileView
-from src.view.html_view import HTMLView
-from src.view.view import View
+from src.utils.url import AbstractURL
+from src.view.view_factory import ViewFactory
 
 
-def load(url: URL):
-    view: View
-    if url.scheme == Scheme.File:
-        view = FileView(url)
-    elif url.scheme == Scheme.HTTP or url.scheme == Scheme.HTTPS:
-        view = HTMLView(url)
+def load(url: AbstractURL):
+    view = ViewFactory.create(url)
     body = view.load()
     view.show(body)
