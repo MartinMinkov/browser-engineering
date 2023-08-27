@@ -1,11 +1,23 @@
+from enum import Enum
+
+
+class Scheme(Enum):
+    HTTP = "http"
+    HTTPS = "https"
+    File = "file"
+
+    def __str__(self):
+        return self.name.lower()
+
+
 class URL:
     def __init__(self, url: str):
-        self.scheme, url = url.split("://", 1)
-        assert self.scheme in ["http", "https"], "Invalid URL scheme"
+        scheme, url = url.split("://", 1)
+        self.scheme = Scheme(scheme)
 
-        if self.scheme == "http":
+        if self.scheme == Scheme.HTTP:
             self.port = 80
-        elif self.scheme == "https":
+        elif self.scheme == Scheme.HTTPS:
             self.port = 443
 
         if "/" not in url:
