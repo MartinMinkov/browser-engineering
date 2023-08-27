@@ -1,6 +1,7 @@
 # Makefile for the Python project
 
 # Set the default task to `help`
+.PHONY: run-main
 .DEFAULT_GOAL := help
 
 # Variables
@@ -29,7 +30,7 @@ clean:
 ## run-main: Run the main.py script in browser-engineering
 run-main:
 	export PYTHONPATH=../:${PYTHONPATH}; \
-  ${PYTHON} src/browser-engineering/main.py '$(ARGS)'
+  	${PYTHON} src/browser-engineering/main.py '$(ARGS)'
 
 ## run-example: Run the given example script in examples
 run-example:

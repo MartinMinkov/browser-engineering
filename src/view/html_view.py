@@ -11,14 +11,23 @@ class HTMLView(View):
             raise ValueError("Unknown scheme {}".format(url.scheme))
         self.url = url
 
-    def show(self, body: str):
+    def show(self, document: str):
         in_angle = False
-        for c in body:
+        in_body = False
+        body_tag_str = "body"
+        for idx, c in enumerate(document):
             if c == "<":
                 in_angle = True
+                if document[idx + 1 : idx + 1 + len(body_tag_str)] == body_tag_str:
+                    in_body = True
             elif c == ">":
                 in_angle = False
-            elif not in_angle:
+                if (
+                    document[idx - len(body_tag_str) : idx] == body_tag_str
+                    and document[idx - len(body_tag_str) - 1] == "/"
+                ):
+                    in_body = False
+            elif in_body and not in_angle:
                 print(c, end="")
 
     def load(self):

@@ -7,4 +7,5 @@
   },
   "python.formatting.provider": "autopep8",
   "python.linting.mypyEnabled": true,
+  "terminal.integrated.shell.linux": "/usr/bin/zsh"
 }
