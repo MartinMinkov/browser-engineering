@@ -17,3 +17,6 @@ class URL:
             self.port = int(port)
 
         self.path = "/" + url
+
+    def __str__(self):
+        return f"{self.scheme}://{self.host}:{self.port}{self.path}"

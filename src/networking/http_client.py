@@ -8,8 +8,9 @@ from src.utils.url import URL
 
 
 class HTTPClient:
-    def __init__(self, url: URL):
+    def __init__(self, url: URL, encoding="utf8"):
         self.url = url
+        self.encoding = encoding
         self.s = socket.socket(
             family=socket.AF_INET, type=socket.SOCK_STREAM, proto=socket.IPPROTO_TCP
         )
@@ -19,13 +20,13 @@ class HTTPClient:
 
     def send_request(self, request: Request):
         self.s.connect((self.url.host, self.url.port))
-        self.s.send((str(request)).encode("utf8"))
+        self.s.send((str(request)).encode(self.encoding))
         response = self.parse_request()
         self.s.close()
         return response
 
     def parse_request(self):
-        response = self.s.makefile("r", encoding="utf8", newline="\r\n")
+        response = self.s.makefile("r", encoding=self.encoding, newline="\r\n")
         statusline = response.readline()
         version, status, explanation = statusline.split(" ", 2)
 
