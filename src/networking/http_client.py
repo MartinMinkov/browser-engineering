@@ -4,7 +4,7 @@ import ssl
 from src.networking.headers import Headers
 from src.networking.request import Request
 from src.networking.response import Response
-from src.utils.url import URL
+from src.utils.url import URL, Scheme
 
 
 class HTTPClient:
@@ -14,7 +14,7 @@ class HTTPClient:
         self.s = socket.socket(
             family=socket.AF_INET, type=socket.SOCK_STREAM, proto=socket.IPPROTO_TCP
         )
-        if url.scheme == "https":
+        if url.scheme == Scheme.HTTPS:
             ctx = ssl.create_default_context()
             self.s = ctx.wrap_socket(self.s, server_hostname=url.host)
 

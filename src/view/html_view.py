@@ -1,11 +1,14 @@
 from src.networking.headers import Headers
 from src.networking.http_client import HTTPClient
 from src.networking.request import Request
-from src.utils.url import URL
+from src.utils.url import URL, Scheme
+from src.view.view import View
 
 
-class HTMLView:
+class HTMLView(View):
     def __init__(self, url: URL):
+        if url.scheme != Scheme.HTTP and url.scheme != Scheme.HTTPS:
+            raise ValueError("Unknown scheme {}".format(url.scheme))
         self.url = url
 
     def show(self, body: str):
@@ -38,5 +41,4 @@ class HTMLView:
             and "charset=" in response.headers.get_header("content-type")
         ):
             encoding = response.headers.get_header("content-type").split("charset=")[-1]
-
         return response.body
