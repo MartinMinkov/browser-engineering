@@ -30,6 +30,7 @@ class HTMLView(View):
                     inside_body_tag = True
                 elif self._is_start_of_tag(document, idx, "/body"):
                     inside_body_tag = False
+                in_angle_brackets = True
                 continue
 
             if char == ">":
