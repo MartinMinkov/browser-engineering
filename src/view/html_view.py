@@ -16,32 +16,29 @@ class HTMLEntity(Enum):
 
 
 class HTMLView(View):
+    url: URL
+    inside_body_tag: bool
+    in_angle_brackets: bool
+
     def __init__(self, url: URL):
-        if url.scheme != Scheme.HTTP and url.scheme != Scheme.HTTPS:
-            raise ValueError("Unknown scheme {}".format(url.scheme))
         self.url = url
+        self.inside_body_tag = False
+        self.in_angle_brackets = False
 
-    def show(self, document: str):
-        if self.url.is_view_source:
-            print(document)
-            return
+        if url.scheme not in {Scheme.HTTP, Scheme.HTTPS}:
+            raise ValueError(f"Unknown scheme {url.scheme}")
 
-        inside_body_tag = False
-        in_angle_brackets = False
+    def show(self, document: str) -> None:
         for idx, char in enumerate(document):
             if char == "<":
                 if self._is_start_of_tag(document, idx, "body"):
-                    inside_body_tag = True
+                    self.inside_body_tag = True
                 elif self._is_start_of_tag(document, idx, "/body"):
-                    inside_body_tag = False
-                in_angle_brackets = True
-                continue
-
-            if char == ">":
-                in_angle_brackets = False
-                continue
-
-            if inside_body_tag and not in_angle_brackets:
+                    self.inside_body_tag = False
+                self.in_angle_brackets = True
+            elif char == ">":
+                self.in_angle_brackets = False
+            elif self.inside_body_tag and not self.in_angle_brackets:
                 char = self._replace_html_entities(char, document, idx)
                 print(char, end="")
 
@@ -56,24 +53,24 @@ class HTMLView(View):
                 return "<"
         return char
 
-    def load(self):
+    def load(self) -> str:
         headers = Headers.default(self.url.host)
         request = Request(self.url, headers=headers)
-
         http_client = HTTPClient(self.url)
         response = http_client.send_request(request)
 
-        assert response.status_code == 200, "{}: {}".format(
-            response.status_code, response.reason_phrase
-        )
-
+        assert (
+            response.status_code == 200
+        ), f"{response.status_code}: {response.reason_phrase}"
         assert "transfer-encoding" not in response.headers
         assert "content-encoding" not in response.headers
 
+        # TODO: Do we need `encoding`?
         encoding = http_client.encoding
         if (
             "content-type" in response.headers
             and "charset=" in response.headers.get_header("content-type")
         ):
             encoding = response.headers.get_header("content-type").split("charset=")[-1]
+
         return response.body
