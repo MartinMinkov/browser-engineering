@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
+from typing import Dict, Tuple
 
 
 class Scheme(Enum):
@@ -7,9 +8,10 @@ class Scheme(Enum):
     HTTPS = "https"
     File = "file"
     Data = "data"
+    ViewSource = "view-source"
 
     def __str__(self):
-        return self.name.lower()
+        return self.value.lower()
 
 
 class AbstractURL(ABC):
@@ -25,50 +27,81 @@ class AbstractURL(ABC):
 
 
 class URL(AbstractURL):
+    DEFAULT_PORTS: Dict[Scheme, int] = {
+        Scheme.HTTP: 80,
+        Scheme.HTTPS: 443,
+    }
+
+    is_view_source: bool
+    scheme: Scheme
+    host: str
+    path: str
+    port: int
+
     def __init__(self, url: str):
-        scheme, url = url.split("://", 1)
-        self.scheme = Scheme(scheme)
+        self.is_view_source = False
 
-        if self.scheme == Scheme.HTTP:
-            self.port = 80
-        elif self.scheme == Scheme.HTTPS:
-            self.port = 443
+        url = self._handle_view_source(url)
+        self.scheme, url = self._extract_scheme(url)
+        self.host, self.path = self._extract_host_and_path(url)
 
+    def _handle_view_source(self, url: str) -> str:
+        if str(Scheme.ViewSource) in url:
+            self.is_view_source = True
+            url = url.replace(str(Scheme.ViewSource) + ":", "")
+        return url
+
+    def _extract_scheme(self, url: str) -> Tuple[Scheme, str]:
+        scheme_str, url = url.split("://", 1)
+        scheme = Scheme(scheme_str)
+        self.port = self.DEFAULT_PORTS[scheme]
+        return scheme, url
+
+    def _extract_host_and_path(self, url: str) -> Tuple[str, str]:
         if "/" not in url:
             url += "/"
-        self.host, url = url.split("/", 1)
-
-        if ":" in self.host:
-            self.host, port = self.host.split(":", 1)
+        host, path = url.split("/", 1)
+        if ":" in host:
+            host, port = host.split(":", 1)
             self.port = int(port)
+        return host, "/" + path
 
-        self.path = "/" + url
-
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.scheme}://{self.host}:{self.port}{self.path}"
 
 
 class DataURL(AbstractURL):
+    scheme: Scheme
+    media_type: str
+    is_base64: bool
+    data: str
+
+    DEFAULT_MEDIA_TYPE = "text/plain;charset=US-ASCII"
+
     def __init__(self, url: str):
-        scheme, url = url.split(":", 1)
-        self.scheme = Scheme(scheme)
+        self.scheme, rest_of_url = self._extract_scheme(url)
         if self.scheme != Scheme.Data:
             raise ValueError("Invalid data URL")
 
-        self.media_type = "text/plain;charset=US-ASCII"
-        self.is_base64 = False
+        self.media_type, rest_of_data = self._extract_media_type(rest_of_url)
+        self.is_base64 = "base64" in rest_of_data
+        self.data = self._extract_data(rest_of_data)
 
+    def _extract_scheme(self, url: str) -> Tuple[Scheme, str]:
+        scheme_str, rest_of_url = url.split(":", 1)
+        return Scheme(scheme_str), rest_of_url
+
+    def _extract_media_type(self, url: str) -> Tuple[str, str]:
         if ";" in url:
-            self.media_type, url = url.split(";", 1)
+            media_type, rest_of_data = url.split(";", 1)
+            return media_type, rest_of_data
+        return self.DEFAULT_MEDIA_TYPE, url
 
-        if "base64" in url:
-            self.is_base64 = True
+    def _extract_data(self, url: str) -> str:
+        return url.split(",", 1)[1]
 
-        url = url.split(",", 1)[1]
-        self.data = url
-
-    def __str__(self):
-        return f"{Scheme.Data}:{self.media_type},{self.data}"
+    def __str__(self) -> str:
+        return f"{self.scheme}:{self.media_type},{self.data}"
 
 
 class URLFactory:

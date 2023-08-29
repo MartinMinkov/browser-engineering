@@ -22,6 +22,10 @@ class HTMLView(View):
         self.url = url
 
     def show(self, document: str):
+        if self.url.is_view_source:
+            print(document)
+            return
+
         inside_body_tag = False
         in_angle_brackets = False
         for idx, char in enumerate(document):
