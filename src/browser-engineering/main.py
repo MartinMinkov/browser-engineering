@@ -1,5 +1,5 @@
 from src.utils.html import load
-from src.utils.url import URLFactory
+from src.utils.url_factory import URLFactory
 
 if __name__ == "__main__":
     import sys
