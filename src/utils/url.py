@@ -104,10 +104,27 @@ class DataURL(AbstractURL):
         return f"{self.scheme}:{self.media_type},{self.data}"
 
 
+class FileURL(AbstractURL):
+    scheme: Scheme
+    path: str
+
+    def __init__(self, url: str):
+        self.scheme, self.path = self._extract_scheme_and_path(url)
+
+    def _extract_scheme_and_path(self, url: str) -> Tuple[Scheme, str]:
+        scheme_str, path = url.split("://", 1)
+        return Scheme(scheme_str), path
+
+    def __str__(self) -> str:
+        return f"{self.scheme}://{self.path}"
+
+
 class URLFactory:
     @staticmethod
     def create(url: str) -> AbstractURL:
         if url.startswith(str(Scheme.Data)):
             return DataURL(url)
+        elif url.startswith(str(Scheme.File)):
+            return FileURL(url)
         else:
             return URL(url)
