@@ -8,11 +8,22 @@ from src.view.view import View
 
 
 class HTMLEntity(Enum):
-    GreaterThan = "&gt;"
-    LessThan = "&lt;"
+    GreaterThan = ("&gt;", ">")
+    LessThan = ("&lt;", "<")
+    Amperstand = ("&amp;", "&")
+    Dash = ("&dash;", "-")
+    NDash = ("&ndash;", "–")
+    MDash = ("&mdash;", "—")
+    Copy = ("&copy;", "©")
+
+    def conatins(self, value: str) -> bool:
+        return value in self.value
 
     def __str__(self):
-        return self.name.lower()
+        return self.value[0]
+
+    def symbol(self):
+        return self.value[1]
 
 
 class HTMLView(View):
@@ -29,6 +40,12 @@ class HTMLView(View):
             raise ValueError(f"Unknown scheme {url.scheme}")
 
     def show(self, document: str) -> None:
+        body = self._body(document)
+        transformed = self._transform(body)
+        print(transformed)
+
+    def _body(self, document: str) -> str:
+        body_document = ""
         for idx, char in enumerate(document):
             if char == "<":
                 if self._is_start_of_tag(document, idx, "body"):
@@ -39,19 +56,25 @@ class HTMLView(View):
             elif char == ">":
                 self.in_angle_brackets = False
             elif self.inside_body_tag and not self.in_angle_brackets:
-                char = self._replace_html_entities(char, document, idx)
-                print(char, end="")
+                body_document += char
+        return body_document
+
+    def _transform(self, document: str) -> str:
+        transformed_document = ""
+        idx = 0
+        while idx < len(document):
+            if document[idx] == "&":
+                for entity in HTMLEntity:
+                    if entity.conatins(document[idx : idx + len(str(entity))]):
+                        transformed_document += entity.symbol()
+                        idx += len(str(entity))
+                        break
+            transformed_document += document[idx]
+            idx += 1
+        return transformed_document
 
     def _is_start_of_tag(self, document: str, idx: int, tag: str) -> bool:
         return document[idx : idx + len(tag) + 1] == f"<{tag}"
-
-    def _replace_html_entities(self, char: str, document: str, idx: int) -> str:
-        if char == "&":
-            if document.startswith(HTMLEntity.GreaterThan.value, idx):
-                return ">"
-            elif document.startswith(HTMLEntity.LessThan.value, idx):
-                return "<"
-        return char
 
     def load(self) -> str:
         headers = Headers.default(self.url.host)
