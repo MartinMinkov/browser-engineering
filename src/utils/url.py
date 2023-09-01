@@ -92,13 +92,25 @@ class DataURL(AbstractURL):
         return Scheme(scheme_str), rest_of_url
 
     def _extract_media_type(self, url: str) -> Tuple[str, str]:
-        if ";" in url:
-            media_type, rest_of_data = url.split(";", 1)
-            return media_type, rest_of_data
-        return self.DEFAULT_MEDIA_TYPE, url
+        media_data_parts = url.split(",", 1)
+
+        if len(media_data_parts) == 1:  # Only data, no media type specified
+            return self.DEFAULT_MEDIA_TYPE, media_data_parts[0]
+
+        # If the first part doesn't contain semicolon, it means only the media type is specified.
+        if ";" not in media_data_parts[0]:
+            return media_data_parts[0], media_data_parts[1]
+
+        # If it contains a semicolon and 'base64', then it's a media type with encoding.
+        if ";base64" in media_data_parts[0]:
+            media_parts = media_data_parts[0].split(";base64")
+            return media_parts[0], media_data_parts[1]
+
+        # If it contains a semicolon but not 'base64', then the whole part is a media type.
+        return media_data_parts[0], media_data_parts[1]
 
     def _extract_data(self, url: str) -> str:
-        return url.split(",", 1)[1]
+        return url
 
     def __str__(self) -> str:
         return f"{self.scheme}:{self.media_type},{self.data}"
