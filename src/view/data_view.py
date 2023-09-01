@@ -14,8 +14,8 @@ class DataView(View):
     def view_show(self, body: str):
         body_str = body
         if self.url.is_base64:
-            body_bytes = body.encode("utf-8")
-            body_str = base64.b64decode(body_bytes).decode("utf-8")
+            body_bytes = base64.b64decode(body)
+            body_str = body_bytes.decode("utf-8")
         print(unquote(body_str))
 
     def view_load(self):

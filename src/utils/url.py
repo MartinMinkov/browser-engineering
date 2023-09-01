@@ -82,9 +82,8 @@ class DataURL(AbstractURL):
         self.scheme, rest_of_url = self._extract_scheme(url)
         if self.scheme != Scheme.Data:
             raise ValueError("Invalid data URL")
-
+        self.is_base64 = False
         self.media_type, rest_of_data = self._extract_media_type(rest_of_url)
-        self.is_base64 = "base64" in rest_of_data
         self.data = self._extract_data(rest_of_data)
 
     def _extract_scheme(self, url: str) -> Tuple[Scheme, str]:
@@ -103,6 +102,7 @@ class DataURL(AbstractURL):
 
         # If it contains a semicolon and 'base64', then it's a media type with encoding.
         if ";base64" in media_data_parts[0]:
+            self.is_base64 = True
             media_parts = media_data_parts[0].split(";base64")
             return media_parts[0], media_data_parts[1]
 
