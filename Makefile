@@ -36,22 +36,17 @@ run-main:
 run-example:
 	${PYTHON} src/examples/$(EXAMPLE).py
 
-## test: Run tests (assuming you're using pytest, but you can change this)
 test:
-	${PIP} install pytest
 	${PYTHON} -m pytest tests/
 
-## lint: Lint the code (assuming you're using flake8 for linting)
 lint:
 	${PIP} install flake8
 	${VENV_NAME}/bin/flake8 src/
 
-## format: Format the code (assuming you're using black for code formatting)
 format:
 	${PIP} install black
 	${VENV_NAME}/bin/black src/
 
-## type-check: Check types using mypy
 type-check:
 	${PIP} install mypy
 	${VENV_NAME}/bin/mypy src/
