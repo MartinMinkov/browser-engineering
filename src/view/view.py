@@ -3,9 +3,9 @@ from abc import ABC, abstractmethod
 
 class View(ABC):
     @abstractmethod
-    def load(self) -> str:
+    def view_load(self) -> str:
         pass
 
     @abstractmethod
-    def show(self, body: str):
+    def view_show(self, body: str):
         pass

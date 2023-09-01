@@ -39,7 +39,7 @@ class HTMLView(View):
         if url.scheme not in {Scheme.HTTP, Scheme.HTTPS}:
             raise ValueError(f"Unknown scheme {url.scheme}")
 
-    def show(self, document: str) -> None:
+    def view_show(self, document: str) -> None:
         body = self._body(document)
         transformed = self._transform(body)
         print(transformed)
@@ -76,7 +76,7 @@ class HTMLView(View):
     def _is_start_of_tag(self, document: str, idx: int, tag: str) -> bool:
         return document[idx : idx + len(tag) + 1] == f"<{tag}"
 
-    def load(self) -> str:
+    def view_load(self) -> str:
         headers = Headers.default(self.url.host)
         request = Request(self.url, headers=headers)
         http_client = HTTPClient(self.url)
