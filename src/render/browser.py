@@ -23,6 +23,7 @@ class WindowBindings(Enum):
     SPACE = "<space>"
     SCROLL_UP = "<Button-4>"
     SCROLL_DOWN = "<Button-5>"
+    RESIZE = "<Configure>"
 
     def __str__(self):
         return self.value
@@ -34,14 +35,16 @@ class Browser:
     cache: BrowserCache
     display_list: List[Tuple[str, int, int]]
     scroll: int
+    content: str
 
     def __init__(self):
         self.window = tkinter.Tk()
         self.canvas = tkinter.Canvas(self.window, width=WIDTH, height=HEIGHT)
-        self.canvas.pack()
+        self.canvas.pack(fill=tkinter.BOTH, expand=tkinter.YES)
         self.cache = BrowserCache()
         self.display_list = []
         self.scroll = 0
+        self.content = ""
         self._init_window_bindings()
 
     def _init_window_bindings(self):
@@ -49,6 +52,14 @@ class Browser:
         self.window.bind(str(WindowBindings.UP), self._scroll_up)
         self.window.bind(str(WindowBindings.SCROLL_DOWN), self._scroll_down)
         self.window.bind(str(WindowBindings.SCROLL_UP), self._scroll_up)
+        self.window.bind(str(WindowBindings.RESIZE), self._resize)
+
+    def _resize(self, event: tkinter.Event):
+        global WIDTH, HEIGHT
+        HEIGHT = event.height
+        WIDTH = event.width
+        self.display_list = self._layout(self.content)
+        self.draw()
 
     def _scroll_down(self, _: tkinter.Event):
         if (self.scroll + SCROLL_STEP) > HEIGHT:
@@ -70,17 +81,18 @@ class Browser:
                 cursor_x = HSTEP
                 cursor_y += VSTEP
                 continue
-            display_list.append((c, cursor_x, cursor_y))
             cursor_x += HSTEP
             if cursor_x >= WIDTH - HSTEP:
                 cursor_x = HSTEP
                 cursor_y += VSTEP
+            display_list.append((c, cursor_x, cursor_y))
         return display_list
 
     def load(self, url: AbstractURL):
         view = ViewFactory.create(url)
         document = view.view_load(self.cache)
         body = view.lex(document)
+        self.content = body
         self.display_list = self._layout(body)
         self.draw()
 
