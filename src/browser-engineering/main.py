@@ -1,5 +1,6 @@
-from src.networking.cache import BrowserCache
-from src.utils.html import load
+import tkinter
+
+from src.render.browser import Browser
 from src.utils.url_factory import URLFactory
 
 if __name__ == "__main__":
@@ -11,5 +12,5 @@ if __name__ == "__main__":
         )
     else:
         url = URLFactory.create(sys.argv[1])
-    cache = BrowserCache()
-    load(url, cache)
+    Browser().load(url)
+    tkinter.mainloop()
