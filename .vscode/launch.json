@@ -7,7 +7,7 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/src/browser-engineering/main.py",
-            "args": ["https://example.org/"],
+            "args": [""],
             "console": "integratedTerminal",
             "justMyCode": true,
             "env": {"PYTHONPATH": "${cwd}"
