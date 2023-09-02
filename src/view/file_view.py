@@ -8,8 +8,11 @@ class FileView(View):
             raise ValueError("Unknown scheme {}".format(url.scheme))
         self.url = url
 
+    def lex(self, body: str) -> str:
+        return body
+
     def view_show(self, body: str):
-        print(body)
+        print(self.lex(body))
 
     def view_load(self):
         with open(self.url.path, "r") as f:

@@ -9,5 +9,9 @@ class View(ABC):
         pass
 
     @abstractmethod
+    def lex(self, body: str) -> str:
+        pass
+
+    @abstractmethod
     def view_show(self, body: str):
         pass

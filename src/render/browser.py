@@ -21,9 +21,14 @@ class Browser:
 
     def load(self, url: AbstractURL):
         view = ViewFactory.create(url)
-        body = view.view_load(self.cache)
-        view.view_show(body)
+        document = view.view_load(self.cache)
+        body = view.lex(document)
 
-        self.canvas.create_rectangle(10, 20, 400, 300)
-        self.canvas.create_oval(100, 100, 150, 150)
-        self.canvas.create_text(200, 150, text="Hi!")
+        HSTEP, VSTEP = 13, 18
+        cursor_x, cursor_y = HSTEP, VSTEP
+        for c in body:
+            self.canvas.create_text(cursor_x, cursor_y, text=c)
+            cursor_x += HSTEP
+            if cursor_x >= WIDTH - HSTEP:
+                cursor_x = HSTEP
+                cursor_y += VSTEP

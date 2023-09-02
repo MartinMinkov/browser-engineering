@@ -42,9 +42,12 @@ class HTMLView(View):
             raise ValueError(f"Unknown scheme {url.scheme}")
 
     def view_show(self, document: str) -> None:
+        body = self.lex(document)
+        print(body)
+
+    def lex(self, document: str) -> str:
         body = self._body(document)
-        transformed = self._transform(body)
-        print(transformed)
+        return self._transform(body)
 
     def _body(self, document: str) -> str:
         body_document = ""
@@ -93,7 +96,7 @@ class HTMLView(View):
 
     def _cache_response(self, response: Response, cache: BrowserCache) -> None:
         cache_control_header = response.headers.get_header("cache-control")
-        if "no-store" in cache_control_header:
+        if cache_control_header is None or "no-store" in cache_control_header:
             return
 
         if cache_control_header and "max-age=" in cache_control_header:

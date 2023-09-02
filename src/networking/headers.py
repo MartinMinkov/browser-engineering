@@ -1,3 +1,6 @@
+from typing import Optional
+
+
 class Headers:
     def __init__(self, headers: dict = {}):
         self.headers = headers
@@ -12,7 +15,9 @@ class Headers:
     def remove_header(self, header: str):
         del self.headers[header.lower()]
 
-    def get_header(self, header: str) -> str:
+    def get_header(self, header: str) -> Optional[str]:
+        if header.lower() not in self.headers:
+            return None
         return self.headers[header.lower()]
 
     def set_encoding(self, encoding: str):

@@ -11,12 +11,15 @@ class DataView(View):
             raise ValueError("Unknown scheme {}".format(url.scheme))
         self.url = url
 
-    def view_show(self, body: str):
+    def lex(self, body: str) -> str:
         body_str = body
         if self.url.is_base64:
             body_bytes = base64.b64decode(body)
             body_str = body_bytes.decode("utf-8")
-        print(unquote(body_str))
+        return unquote(body_str)
+
+    def view_show(self, body: str):
+        print(self.lex(body))
 
     def view_load(self):
         return self.url.data
