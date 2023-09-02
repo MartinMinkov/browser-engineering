@@ -1,3 +1,4 @@
+from src.networking.cache import BrowserCache
 from src.utils.html import load
 from src.utils.url_factory import URLFactory
 
@@ -10,4 +11,5 @@ if __name__ == "__main__":
         )
     else:
         url = URLFactory.create(sys.argv[1])
-    load(url)
+    cache = BrowserCache()
+    load(url, cache)

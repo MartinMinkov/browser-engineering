@@ -1,8 +1,10 @@
 from enum import Enum
 
+from src.networking.cache import BrowserCache
 from src.networking.headers import Headers
 from src.networking.http_client import HTTPClient
 from src.networking.request import Request
+from src.networking.response import Response
 from src.utils.url import URL, Scheme
 from src.view.view import View
 
@@ -76,24 +78,37 @@ class HTMLView(View):
     def _is_start_of_tag(self, document: str, idx: int, tag: str) -> bool:
         return document[idx : idx + len(tag) + 1] == f"<{tag}"
 
-    def view_load(self) -> str:
-        headers = Headers.default(self.url.host)
-        request = Request(self.url, headers=headers)
-        http_client = HTTPClient(self.url)
-        response = http_client.send_request(request)
-
+    def _validate_response(self, response: Response):
         assert (
             response.status_code == 200
         ), f"{response.status_code}: {response.reason_phrase}"
         assert "transfer-encoding" not in response.headers
         assert "content-encoding" not in response.headers
 
-        # TODO: Do we need `encoding`?
-        encoding = http_client.encoding
-        if (
-            "content-type" in response.headers
-            and "charset=" in response.headers.get_header("content-type")
-        ):
-            encoding = response.headers.get_header("content-type").split("charset=")[-1]
+    def _fetch_fresh_response(self) -> Response:
+        headers = Headers.default(self.url.host)
+        request = Request(self.url, headers=headers)
+        http_client = HTTPClient(self.url)
+        return http_client.send_request(request)
 
-        return response.body
+    def _cache_response(self, response: Response, cache: BrowserCache) -> None:
+        cache_control_header = response.headers.get_header("cache-control")
+        if "no-store" in cache_control_header:
+            return
+
+        if cache_control_header and "max-age=" in cache_control_header:
+            max_age = int(cache_control_header.split("=")[-1])
+            cache.set(str(self.url), response, max_age)
+
+    def view_load(self, cache: BrowserCache) -> str:
+        # Check cache first
+        cached_response = cache.get(str(self.url))
+        if cached_response:
+            self._validate_response(cached_response)
+            return cached_response.body
+        fresh_response = self._fetch_fresh_response()
+        self._validate_response(fresh_response)
+
+        # Cache the fresh response if it has a valid max_age
+        self._cache_response(fresh_response, cache)
+        return fresh_response.body
