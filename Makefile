@@ -51,6 +51,9 @@ type-check:
 	${PIP} install mypy
 	${VENV_NAME}/bin/mypy src/
 
+freeze:
+	${PIP} freeze > requirements.txt
+
 ## help: Display this help message
 help:
 	@echo "Please use 'make <target>' where <target> is one of"
