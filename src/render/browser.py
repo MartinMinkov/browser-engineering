@@ -62,6 +62,10 @@ class Browser:
         display_list = []
         cursor_x, cursor_y = HSTEP, VSTEP
         for c in text:
+            if c == "\n":
+                cursor_x = HSTEP
+                cursor_y += VSTEP
+                continue
             display_list.append((c, cursor_x, cursor_y))
             cursor_x += HSTEP
             if cursor_x >= WIDTH - HSTEP:
