@@ -21,6 +21,8 @@ class WindowBindings(Enum):
     LEFT = "<Left>"
     RIGHT = "<Right>"
     SPACE = "<space>"
+    SCROLL_UP = "<Button-4>"
+    SCROLL_DOWN = "<Button-5>"
 
     def __str__(self):
         return self.value
@@ -45,14 +47,16 @@ class Browser:
     def _init_window_bindings(self):
         self.window.bind(str(WindowBindings.DOWN), self._scroll_down)
         self.window.bind(str(WindowBindings.UP), self._scroll_up)
+        self.window.bind(str(WindowBindings.SCROLL_DOWN), self._scroll_down)
+        self.window.bind(str(WindowBindings.SCROLL_UP), self._scroll_up)
 
-    def _scroll_down(self, event):
+    def _scroll_down(self, _: tkinter.Event):
         if (self.scroll + SCROLL_STEP) > HEIGHT:
             return
         self.scroll += SCROLL_STEP
         self.draw()
 
-    def _scroll_up(self, event):
+    def _scroll_up(self, _: tkinter.Event):
         if (self.scroll - SCROLL_STEP) < 0:
             return
         self.scroll -= SCROLL_STEP
