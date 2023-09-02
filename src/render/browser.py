@@ -1,4 +1,5 @@
 import tkinter
+from enum import Enum
 from typing import List, Tuple
 
 from src.networking.cache import BrowserCache
@@ -10,6 +11,19 @@ HEIGHT = 600
 
 HSTEP = 13
 VSTEP = 18
+
+SCROLL_STEP = 100
+
+
+class WindowBindings(Enum):
+    DOWN = "<Down>"
+    UP = "<Up>"
+    LEFT = "<Left>"
+    RIGHT = "<Right>"
+    SPACE = "<space>"
+
+    def __str__(self):
+        return self.value
 
 
 class Browser:
@@ -26,6 +40,23 @@ class Browser:
         self.cache = BrowserCache()
         self.display_list = []
         self.scroll = 0
+        self._init_window_bindings()
+
+    def _init_window_bindings(self):
+        self.window.bind(str(WindowBindings.DOWN), self._scroll_down)
+        self.window.bind(str(WindowBindings.UP), self._scroll_up)
+
+    def _scroll_down(self, event):
+        if (self.scroll + SCROLL_STEP) > HEIGHT:
+            return
+        self.scroll += SCROLL_STEP
+        self.draw()
+
+    def _scroll_up(self, event):
+        if (self.scroll - SCROLL_STEP) < 0:
+            return
+        self.scroll -= SCROLL_STEP
+        self.draw()
 
     def _layout(self, text: str) -> List[Tuple[str, int, int]]:
         display_list = []
@@ -46,5 +77,6 @@ class Browser:
         self.draw()
 
     def draw(self):
+        self.canvas.delete("all")
         for c, x, y in self.display_list:
             self.canvas.create_text(x, y - self.scroll, text=c)
