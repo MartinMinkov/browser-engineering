@@ -1,62 +1,79 @@
+from time import sleep
 from unittest import TestCase
 
-from src.networking.cache import LRUCache
+from src.networking.cache import BrowserCache
+from src.networking.headers import Headers
+from src.networking.response import Response
 
 
 class TestCache(TestCase):
-    def test_set_and_get(self):
-        cache = LRUCache(size=3)
+    def test_basic_set_get(self):
+        cache = BrowserCache()
+        resp = Response(200, "OK", Headers({"Content-Type": "text/plain"}), "test_data")
+        cache.set("test_key", resp)
+        self.assertEqual(cache.get("test_key"), resp)
 
-        cache.set("a", 1)
-        cache.set("b", 2)
-        cache.set("c", 3)
-        assert cache.get("a") == 1
-        assert cache.get("b") == 2
-        assert cache.get("c") == 3
+    def test_eviction_on_time(self):
+        cache = BrowserCache()
+        resp1 = Response(
+            200, "OK", Headers({"Content-Type": "text/plain"}), "test_data1"
+        )
+        resp2 = Response(
+            404, "Not Found", Headers({"Content-Type": "text/plain"}), "test_data2"
+        )
 
-    def test_over_capacity(self):
-        cache = LRUCache(size=2)
+        cache.set("test_key1", resp1, max_age=1)
+        cache.set("test_key2", resp2, max_age=3)
 
-        cache.set("a", 1)
-        cache.set("b", 2)
-        cache.set("c", 3)
+        sleep(2)
 
-        assert (
-            cache.get("a") is None
-        )  # "a" should be evicted as it's the least recently used
-        assert cache.get("b") == 2
-        assert cache.get("c") == 3
+        self.assertIsNone(cache.get("test_key1"))
+        self.assertEqual(cache.get("test_key2"), resp2)
 
-    def test_lru_order(self):
-        cache = LRUCache(size=3)
+    def test_eviction_due_to_capacity(self):
+        cache = BrowserCache(capacity=2)
+        resp1 = Response(
+            200, "OK", Headers({"Content-Type": "text/plain"}), "test_data1"
+        )
+        resp2 = Response(
+            404, "Not Found", Headers({"Content-Type": "text/plain"}), "test_data2"
+        )
+        resp3 = Response(
+            500, "Server Error", Headers({"Content-Type": "text/plain"}), "test_data3"
+        )
 
-        cache.set("a", 1)
-        cache.set("b", 2)
-        cache.set("c", 3)
-        cache.get("a")  # Update "a" to be the most recently used
-        cache.set("d", 4)  # This should evict "b" as it's now the least recently used
+        cache.set("test_key1", resp1)
+        cache.set("test_key2", resp2)
+        cache.set("test_key3", resp3)  # This should evict test_key1
 
-        assert cache.get("b") is None
-        assert cache.get("a") == 1
-        assert cache.get("c") == 3
-        assert cache.get("d") == 4
+        self.assertIsNone(cache.get("test_key1"))
+        self.assertEqual(cache.get("test_key2"), resp2)
+        self.assertEqual(cache.get("test_key3"), resp3)
 
-    def test_update_existing_key(self):
-        cache = LRUCache(size=3)
+    def test_unsuccessful_response(self):
+        cache = BrowserCache()
+        resp = Response(
+            404, "Not Found", Headers({"Content-Type": "text/plain"}), "error_data"
+        )
+        cache.set("error_key", resp)
+        self.assertEqual(cache.get("error_key"), resp)
+        self.assertFalse(resp.is_successful())
 
-        cache.set("a", 1)
-        cache.set("b", 2)
-        cache.set("a", 3)  # Update the value for key "a"
+    def test_cache_size(self):
+        cache = BrowserCache()
+        resp1 = Response(
+            200, "OK", Headers({"Content-Type": "text/plain"}), "test_data1"
+        )
+        resp2 = Response(
+            404, "Not Found", Headers({"Content-Type": "text/plain"}), "test_data2"
+        )
+        self.assertEqual(cache.get_capacity(), 0)
 
-        assert cache.get("a") == 3
-        assert cache.get("b") == 2
+        cache.set("test_key1", resp1)
+        self.assertEqual(cache.get_capacity(), 1)
 
-    def test_get_capacity(self):
-        cache = LRUCache(size=3)
+        cache.set("test_key2", resp2)
+        self.assertEqual(cache.get_capacity(), 2)
 
-        assert cache.get_capacity() == 0  # No items added yet
-
-        cache.set("a", 1)
-        cache.set("b", 2)
-
-        assert cache.get_capacity() == 2
+        cache.get("test_key1")  # Accessing should not change the size
+        self.assertEqual(cache.get_capacity(), 2)

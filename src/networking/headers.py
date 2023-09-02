@@ -1,6 +1,6 @@
 class Headers:
-    def __init__(self):
-        self.headers = {}
+    def __init__(self, headers: dict = {}):
+        self.headers = headers
         self.encoding = "utf8"
 
     def __iter__(self):
