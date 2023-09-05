@@ -13,7 +13,7 @@ HEIGHT = 600
 
 SCROLL_STEP = 100
 
-DEFUALT_FONT_SIZE = 12
+DEFUALT_FONT_SIZE = 16
 
 
 class WindowBindings(Enum):
@@ -41,8 +41,8 @@ class Browser:
     scroll: int
     content: str
     font: tkinter.font.Font
-    HSTEP = 13
-    VSTEP = 18
+    HSTEP: int
+    VSTEP: int
 
     def __init__(self):
         self.window = tkinter.Tk()
@@ -52,7 +52,9 @@ class Browser:
         self.display_list = []
         self.scroll = 0
         self.content = ""
-        self.font = tkinter.font.Font(size=DEFUALT_FONT_SIZE)
+        self.font = tkinter.font.Font(family="Times", size=DEFUALT_FONT_SIZE)
+        self.HSTEP = self.font.measure(" ")
+        self.VSTEP = self.font.metrics("linespace")
         self._init_window_bindings()
 
     def _init_window_bindings(self):
@@ -64,7 +66,6 @@ class Browser:
         self.window.bind(str(WindowBindings.PLUS), self._increase_font_size)
         self.window.bind(str(WindowBindings.MINUS), self._decrease_font_size)
         self.window.bind(str(WindowBindings.CTRL_D), self._close_window)
-        self.window.bind(str())
 
     def _close_window(self, _: tkinter.Event):
         self.window.destroy()
@@ -72,14 +73,12 @@ class Browser:
     def _increase_font_size(self, _: tkinter.Event):
         self.font = tkinter.font.Font(size=self.font.actual()["size"] + 1)
         self.HSTEP = self.HSTEP + 2
-        self.VSTEP = self.font.metrics("linespace")
         self.display_list = self._layout(self.content)
         self.draw()
 
     def _decrease_font_size(self, _: tkinter.Event):
         self.font = tkinter.font.Font(size=self.font.actual()["size"] - 1)
         self.HSTEP = self.HSTEP - 2
-        self.VSTEP = self.font.metrics("linespace")
         self.display_list = self._layout(self.content)
         self.draw()
 
@@ -105,16 +104,31 @@ class Browser:
     def _layout(self, text: str) -> List[Tuple[str, int, int]]:
         display_list = []
         cursor_x, cursor_y = self.HSTEP, self.VSTEP
-        for c in text:
-            if c == "\n":
+        test = text.split(sep=" ")
+        for word in text.split(sep=" "):
+            # Only newlines
+            if is_only_newlines(word):
+                cursor_y += int(self.VSTEP * 1.25) * count_newlines(word)
                 cursor_x = self.HSTEP
-                cursor_y += self.VSTEP
                 continue
-            cursor_x += self.HSTEP
-            if cursor_x >= WIDTH - self.HSTEP:
+
+            # Line wrap
+            if cursor_x + self.font.measure(word) > WIDTH - self.HSTEP:
+                cursor_y += int(self.VSTEP * 1.25)
                 cursor_x = self.HSTEP
-                cursor_y += self.VSTEP
-            display_list.append((c, cursor_x, cursor_y))
+
+            for c in word:
+                if c == "\n":
+                    cursor_y += int(self.VSTEP * 1.25)
+                    cursor_x = self.HSTEP
+                    continue
+                if c == "m" or c == "p":
+                    cursor_x += self.font.measure(" ")
+                cursor_x += int(self.font.measure(word) / len(word))
+                display_list.append((c, cursor_x, cursor_y))
+
+            cursor_x += self.font.measure(" ")
+            display_list.append((" ", cursor_x, cursor_y))
         return display_list
 
     def load(self, url: AbstractURL):
@@ -133,3 +147,11 @@ class Browser:
             if y + self.VSTEP < self.scroll:
                 continue
             self.canvas.create_text(x, y - self.scroll, text=c, font=self.font)
+
+
+def is_only_newlines(text: str) -> bool:
+    return text.replace("\n", "") == ""
+
+
+def count_newlines(text: str) -> int:
+    return text.count("\n")
