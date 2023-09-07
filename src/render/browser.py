@@ -104,7 +104,6 @@ class Browser:
     def _layout(self, text: str) -> List[Tuple[str, int, int]]:
         display_list = []
         cursor_x, cursor_y = self.HSTEP, self.VSTEP
-        test = text.split(sep=" ")
         for word in text.split(sep=" "):
             # Only newlines
             if is_only_newlines(word):
@@ -112,8 +111,9 @@ class Browser:
                 cursor_x = self.HSTEP
                 continue
 
+            letter_size = int(self.font.measure(word) / len(word))
             # Line wrap
-            if cursor_x + self.font.measure(word) > WIDTH - self.HSTEP:
+            if cursor_x + letter_size > WIDTH - self.HSTEP:
                 cursor_y += int(self.VSTEP * 1.25)
                 cursor_x = self.HSTEP
 
@@ -124,7 +124,8 @@ class Browser:
                     continue
                 if c == "m" or c == "p":
                     cursor_x += self.font.measure(" ")
-                cursor_x += int(self.font.measure(word) / len(word))
+
+                cursor_x += letter_size
                 display_list.append((c, cursor_x, cursor_y))
 
             cursor_x += self.font.measure(" ")
