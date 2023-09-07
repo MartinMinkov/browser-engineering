@@ -1,8 +1,8 @@
+from src.parser.parser import Parser
 from src.utils.url import FileURL, Scheme
-from src.view.view import View
 
 
-class FileView(View):
+class FileParser(Parser):
     def __init__(self, url: FileURL):
         if url.scheme != Scheme.File:
             raise ValueError("Unknown scheme {}".format(url.scheme))

@@ -5,8 +5,8 @@ from src.networking.headers import Headers
 from src.networking.http_client import HTTPClient
 from src.networking.request import Request
 from src.networking.response import Response
+from src.parser.parser import Parser
 from src.utils.url import URL, Scheme
-from src.view.view import View
 
 
 class HTMLEntity(Enum):
@@ -28,7 +28,7 @@ class HTMLEntity(Enum):
         return self.value[1]
 
 
-class HTMLView(View):
+class HTMLParser(Parser):
     url: URL
     inside_body_tag: bool
     in_angle_brackets: bool

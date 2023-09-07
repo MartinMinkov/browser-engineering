@@ -4,8 +4,8 @@ from enum import Enum
 from typing import List, Tuple
 
 from src.networking.cache import BrowserCache
+from src.parser.parser_factory import ParserFactory
 from src.utils.url import AbstractURL
-from src.view.view_factory import ViewFactory
 
 WIDTH = 800
 HEIGHT = 600
@@ -133,7 +133,7 @@ class Browser:
         return display_list
 
     def load(self, url: AbstractURL):
-        view = ViewFactory.create(url)
+        view = ParserFactory.create(url)
         document = view.view_load(self.cache)
         body = view.lex(document)
         self.content = body

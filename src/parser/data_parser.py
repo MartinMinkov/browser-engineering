@@ -1,11 +1,11 @@
 import base64
 from urllib.parse import unquote
 
+from src.parser.parser import Parser
 from src.utils.url import DataURL, Scheme
-from src.view.view import View
 
 
-class DataView(View):
+class DataParser(Parser):
     def __init__(self, url: DataURL):
         if url.scheme != Scheme.Data:
             raise ValueError("Unknown scheme {}".format(url.scheme))
