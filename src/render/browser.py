@@ -5,6 +5,7 @@ from typing import List, Tuple
 
 from src.networking.cache import BrowserCache
 from src.parser.parser_factory import ParserFactory
+from src.resolver.resolver_factory import ResolverFactory
 from src.utils.url import AbstractURL
 
 WIDTH = 800
@@ -133,11 +134,11 @@ class Browser:
         return display_list
 
     def load(self, url: AbstractURL):
-        view = ParserFactory.create(url)
-        document = view.view_load(self.cache)
-        body = view.lex(document)
-        self.content = body
-        self.display_list = self._layout(body)
+        resolver = ResolverFactory.create(url, self.cache)
+        parser = ParserFactory.create(resolver)
+        document = parser.lex()
+        self.content = document
+        self.display_list = self._layout(document)
         self.draw()
 
     def draw(self):

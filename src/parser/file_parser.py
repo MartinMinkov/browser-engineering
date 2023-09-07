@@ -1,19 +1,12 @@
 from src.parser.parser import Parser
-from src.utils.url import FileURL, Scheme
+from src.resolver.file_resolver import FileResolver
 
 
 class FileParser(Parser):
-    def __init__(self, url: FileURL):
-        if url.scheme != Scheme.File:
-            raise ValueError("Unknown scheme {}".format(url.scheme))
-        self.url = url
+    resolver: FileResolver
 
-    def lex(self, body: str) -> str:
-        return body
+    def __init__(self, resolver: FileResolver):
+        self.resolver = resolver
 
-    def view_show(self, body: str):
-        print(self.lex(body))
-
-    def view_load(self):
-        with open(self.url.path, "r") as f:
-            return f.read()
+    def lex(self) -> str:
+        return self.resolver.resolve()

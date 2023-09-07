@@ -2,16 +2,19 @@ from src.parser.data_parser import DataParser
 from src.parser.file_parser import FileParser
 from src.parser.html_parser import HTMLParser
 from src.parser.parser import Parser
-from src.utils.url import URL, AbstractURL, DataURL, FileURL
+from src.resolver.data_resolver import DataResolver
+from src.resolver.file_resolver import FileResolver
+from src.resolver.http_resolver import HTTPResolver
+from src.resolver.resolver import Resolver
 
 
 class ParserFactory:
     @staticmethod
-    def create(url: AbstractURL) -> Parser:
-        if isinstance(url, URL):
-            return HTMLParser(url)
-        elif isinstance(url, FileURL):
-            return FileParser(url)
-        elif isinstance(url, DataURL):
-            return DataParser(url)
-        raise ValueError(f"Unsupported URL type: {type(url)}")
+    def create(resolver: Resolver) -> Parser:
+        if isinstance(resolver, HTTPResolver):
+            return HTMLParser(resolver)
+        elif isinstance(resolver, FileResolver):
+            return FileParser(resolver)
+        elif isinstance(resolver, DataResolver):
+            return DataParser(resolver)
+        raise ValueError(f"Unsupported resolver type: {type(resolver)}")

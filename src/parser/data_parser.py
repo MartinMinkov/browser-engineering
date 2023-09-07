@@ -1,25 +1,12 @@
-import base64
-from urllib.parse import unquote
-
 from src.parser.parser import Parser
-from src.utils.url import DataURL, Scheme
+from src.resolver.data_resolver import DataResolver
 
 
 class DataParser(Parser):
-    def __init__(self, url: DataURL):
-        if url.scheme != Scheme.Data:
-            raise ValueError("Unknown scheme {}".format(url.scheme))
-        self.url = url
+    resolver: DataResolver
 
-    def lex(self, body: str) -> str:
-        body_str = body
-        if self.url.is_base64:
-            body_bytes = base64.b64decode(body)
-            body_str = body_bytes.decode("utf-8")
-        return unquote(body_str)
+    def __init__(self, resolver: DataResolver):
+        self.resolver = resolver
 
-    def view_show(self, body: str):
-        print(self.lex(body))
-
-    def view_load(self):
-        return self.url.data
+    def lex(self) -> str:
+        return self.resolver.resolve()
