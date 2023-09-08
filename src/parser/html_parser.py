@@ -1,6 +1,9 @@
 from enum import Enum
+from typing import List, Union
 
 from src.parser.parser import Parser
+from src.render.tag import Tag
+from src.render.text import Text
 from src.resolver.http_resolver import HTTPResolver
 
 
@@ -25,35 +28,37 @@ class HTMLEntity(Enum):
 
 class HTMLParser(Parser):
     resolver: HTTPResolver
-    inside_body_tag: bool
-    in_angle_brackets: bool
+    inside_tag: bool
 
     def __init__(self, resolver: HTTPResolver):
         self.resolver = resolver
-        self.inside_body_tag = False
-        self.in_angle_brackets = False
+        self.inside_tag = False
 
-    def lex(self) -> str:
+    def lex(self) -> List[Union[Text, Tag]]:
         document = self.resolver.resolve()
         if self.resolver.url.is_view_source:
-            return document
-        body = self._body(document)
-        return self._transform(body)
+            return [Text(document)]
+        transformed = self._transform(document)
+        return self._body(transformed)
 
-    def _body(self, document: str) -> str:
-        body_document = ""
-        for idx, char in enumerate(document):
+    def _body(self, document: str) -> List[Union[Text, Tag]]:
+        tokens: List[Union[Text, Tag]] = []
+        text_buffer = ""
+        for char in document:
             if char == "<":
-                if self._is_start_of_tag(document, idx, "body"):
-                    self.inside_body_tag = True
-                elif self._is_start_of_tag(document, idx, "/body"):
-                    self.inside_body_tag = False
-                self.in_angle_brackets = True
+                self.inside_tag = True
+                if text_buffer:
+                    tokens.append(Text(text_buffer))
+                text_buffer = ""
             elif char == ">":
-                self.in_angle_brackets = False
-            elif self.inside_body_tag and not self.in_angle_brackets:
-                body_document += char
-        return body_document
+                self.inside_tag = False
+                tokens.append(Tag(text_buffer))
+                text_buffer = ""
+            else:
+                text_buffer += char
+        if not self.inside_tag and text_buffer:
+            tokens.append(Text(text_buffer))
+        return tokens
 
     def _transform(self, document: str) -> str:
         transformed_document = ""

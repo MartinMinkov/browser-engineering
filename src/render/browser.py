@@ -1,10 +1,12 @@
 import tkinter
 import tkinter.font
 from enum import Enum
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from src.networking.cache import BrowserCache
 from src.parser.parser_factory import ParserFactory
+from src.render.tag import Tag
+from src.render.text import Text
 from src.resolver.resolver_factory import ResolverFactory
 from src.utils.url import AbstractURL
 
@@ -40,7 +42,7 @@ class Browser:
     cache: BrowserCache
     display_list: List[Tuple[str, int, int]]
     scroll: int
-    content: str
+    content: List[Union[Text, Tag]]
     font: tkinter.font.Font
     HSTEP: int
     VSTEP: int
@@ -102,10 +104,24 @@ class Browser:
         self.scroll -= SCROLL_STEP
         self.draw()
 
-    def _layout(self, text: str) -> List[Tuple[str, int, int]]:
-        display_list = []
+    def _layout(self, tokens: List[Union[Text, Tag]]) -> List[Tuple[str, int, int]]:
+        display_list: List[Tuple[str, int, int]] = []
         cursor_x, cursor_y = self.HSTEP, self.VSTEP
-        for word in text.split(sep=" "):
+        for token in tokens:
+            if isinstance(token, Text):
+                cursor_x, cursor_y = self._layout_text_token(
+                    token, cursor_x, cursor_y, display_list
+                )
+        return display_list
+
+    def _layout_text_token(
+        self,
+        token: Text,
+        cursor_x: int,
+        cursor_y: int,
+        display_list: List[Tuple[str, int, int]],
+    ) -> Tuple[int, int]:
+        for word in token.text.split():
             # Only newlines
             if is_only_newlines(word):
                 cursor_y += int(self.VSTEP * 1.25) * count_newlines(word)
@@ -131,7 +147,7 @@ class Browser:
 
             cursor_x += self.font.measure(" ")
             display_list.append((" ", cursor_x, cursor_y))
-        return display_list
+        return cursor_x, cursor_y
 
     def load(self, url: AbstractURL):
         resolver = ResolverFactory.create(url, self.cache)
