@@ -24,6 +24,7 @@ class HTMLEntity(Enum):
 
 
 class HTMLParser(Parser):
+    resolver: HTTPResolver
     inside_body_tag: bool
     in_angle_brackets: bool
 
@@ -34,6 +35,8 @@ class HTMLParser(Parser):
 
     def lex(self) -> str:
         document = self.resolver.resolve()
+        if self.resolver.url.is_view_source:
+            return document
         body = self._body(document)
         return self._transform(body)
 
