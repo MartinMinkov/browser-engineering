@@ -1,7 +1,7 @@
 import tkinter
 import tkinter.font
 from enum import Enum
-from typing import List, Tuple, Union
+from typing import List, Literal, Optional, Tuple, Union
 
 from src.networking.cache import BrowserCache
 from src.parser.parser_factory import ParserFactory
@@ -17,6 +17,11 @@ HEIGHT = 600
 SCROLL_STEP = 100
 
 DEFUALT_FONT_SIZE = 16
+
+FontWeight = Optional[Literal["normal", "bold"]]
+FontStyle = Optional[Literal["roman", "italic"]]
+DisplayList = List[Tuple[str, int, int, Optional[tkinter.font.Font]]]
+BrowserContent = List[Union[Text, Tag]]
 
 
 class WindowBindings(Enum):
@@ -40,10 +45,12 @@ class Browser:
     window: tkinter.Tk
     canvas: tkinter.Canvas
     cache: BrowserCache
-    display_list: List[Tuple[str, int, int]]
+    display_list: DisplayList
     scroll: int
-    content: List[Union[Text, Tag]]
+    content: BrowserContent
     font: tkinter.font.Font
+    weight: FontWeight
+    style: FontStyle
     HSTEP: int
     VSTEP: int
 
@@ -56,6 +63,8 @@ class Browser:
         self.scroll = 0
         self.content = ""
         self.font = tkinter.font.Font(family="Times", size=DEFUALT_FONT_SIZE)
+        self.weight = "normal"
+        self.style = "roman"
         self.HSTEP = self.font.measure(" ")
         self.VSTEP = self.font.metrics("linespace")
         self._init_window_bindings()
@@ -104,49 +113,78 @@ class Browser:
         self.scroll -= SCROLL_STEP
         self.draw()
 
-    def _layout(self, tokens: List[Union[Text, Tag]]) -> List[Tuple[str, int, int]]:
-        display_list: List[Tuple[str, int, int]] = []
+    def _layout(self, tokens: BrowserContent) -> DisplayList:
+        display_list: DisplayList = []
         cursor_x, cursor_y = self.HSTEP, self.VSTEP
         for token in tokens:
             if isinstance(token, Text):
-                cursor_x, cursor_y = self._layout_text_token(
-                    token, cursor_x, cursor_y, display_list
-                )
+                updated_cursor_x, updated_cursor_y = cursor_x, cursor_y
+                if self.style is not None and self.weight is not None:
+                    self.font = tkinter.font.Font(
+                        family="Times",
+                        size=self.font.actual()["size"],
+                        weight=self.weight,
+                        slant=self.style,
+                    )
+                    updated_cursor_x, updated_cursor_y = self._layout_word(
+                        token.text, cursor_x, cursor_y, self.font, display_list
+                    )
+                else:
+                    updated_cursor_x, updated_cursor_y = self._layout_word(
+                        token.text, cursor_x, cursor_y, self.font, display_list
+                    )
+                cursor_x, cursor_y = updated_cursor_x, updated_cursor_y
+            elif isinstance(token, Tag):
+                self.style, self.weight = self._tag_style(token)
         return display_list
 
-    def _layout_text_token(
+    def _tag_style(self, tag: Tag) -> Tuple[FontStyle, FontWeight]:
+        style: FontStyle = None
+        weight: FontWeight = None
+        if tag.tag == "i":
+            style = "italic"
+        elif tag.tag == "/i":
+            style = "roman"
+        elif tag.tag == "b":
+            weight = "bold"
+        elif tag.tag == "/b":
+            weight = "normal"
+        return style, weight
+
+    def _layout_word(
         self,
-        token: Text,
+        word: str,
         cursor_x: int,
         cursor_y: int,
-        display_list: List[Tuple[str, int, int]],
+        font: tkinter.font.Font,
+        display_list: DisplayList,
     ) -> Tuple[int, int]:
-        for word in token.text.split():
-            # Only newlines
-            if is_only_newlines(word):
-                cursor_y += int(self.VSTEP * 1.25) * count_newlines(word)
-                cursor_x = self.HSTEP
-                continue
+        # Only newlines
+        if is_only_newlines(word):
+            cursor_y += int(self.VSTEP * 1.25) * count_newlines(word)
+            cursor_x = self.HSTEP
+            return cursor_x, cursor_y
 
-            letter_size = int(self.font.measure(word) / len(word))
-            # Line wrap
-            if cursor_x + letter_size > WIDTH - self.HSTEP:
+        letter_size = int(self.font.measure(word) / len(word))
+
+        # Line wrap
+        if cursor_x + letter_size > WIDTH - self.HSTEP:
+            cursor_y += int(self.VSTEP * 1.25)
+            cursor_x = self.HSTEP
+
+        for c in word:
+            if c == "\n":
                 cursor_y += int(self.VSTEP * 1.25)
                 cursor_x = self.HSTEP
+                continue
+            if c == "m" or c == "p":
+                cursor_x += self.font.measure(" ")
 
-            for c in word:
-                if c == "\n":
-                    cursor_y += int(self.VSTEP * 1.25)
-                    cursor_x = self.HSTEP
-                    continue
-                if c == "m" or c == "p":
-                    cursor_x += self.font.measure(" ")
+            cursor_x += letter_size
+            display_list.append((c, cursor_x, cursor_y, font))
 
-                cursor_x += letter_size
-                display_list.append((c, cursor_x, cursor_y))
-
-            cursor_x += self.font.measure(" ")
-            display_list.append((" ", cursor_x, cursor_y))
+        cursor_x += self.font.measure(" ")
+        display_list.append((" ", cursor_x, cursor_y, font))
         return cursor_x, cursor_y
 
     def load(self, url: AbstractURL):
@@ -159,12 +197,12 @@ class Browser:
 
     def draw(self):
         self.canvas.delete("all")
-        for c, x, y in self.display_list:
+        for c, x, y, f in self.display_list:
             if y > self.scroll + HEIGHT:
                 continue
             if y + self.VSTEP < self.scroll:
                 continue
-            self.canvas.create_text(x, y - self.scroll, text=c, font=self.font)
+            self.canvas.create_text(x, y - self.scroll, text=c, font=f)
 
 
 def is_only_newlines(text: str) -> bool:
