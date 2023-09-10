@@ -104,7 +104,7 @@ class Browser:
         self.draw()
 
     def _scroll_down(self, _: tkinter.Event):
-        if (self.scroll + SCROLL_STEP) > HEIGHT:
+        if (self.scroll + SCROLL_STEP) > self._get_highest_y_position() - SCROLL_STEP:
             return
         self.scroll += SCROLL_STEP
         self.draw()
@@ -129,7 +129,7 @@ class Browser:
                 inside_body or self._check_is_view_source()
             ):
                 cursor_x, cursor_y = self._layout_text(
-                    token, cursor_x, cursor_y, display_list
+                    token.text, cursor_x, cursor_y, self.font, display_list
                 )
             elif isinstance(token, Tag):
                 if token.tag == "body":
@@ -138,13 +138,6 @@ class Browser:
                     inside_body = False
                 self._tag_style(token)
         return display_list
-
-    def _layout_text(
-        self, token: Text, cursor_x: int, cursor_y: int, display_list: DisplayList
-    ) -> Tuple[int, int]:
-        return self._layout_word(
-            token.text, cursor_x, cursor_y, self.font, display_list
-        )
 
     def _tag_style(self, tag: Tag):
         if tag.tag == "i":
@@ -163,7 +156,7 @@ class Browser:
             slant=self.style,
         )
 
-    def _layout_word(
+    def _layout_text(
         self,
         word: str,
         cursor_x: int,
@@ -177,10 +170,11 @@ class Browser:
             cursor_x = self.HSTEP
             return cursor_x, cursor_y
 
-        letter_size = int(self.font.measure(word) / len(word))
+        word_size = self.font.measure(word)
+        letter_size = int(word_size / len(word))
 
         # Line wrap
-        if cursor_x + letter_size > WIDTH - self.HSTEP:
+        if cursor_x + word_size > WIDTH - self.HSTEP:
             cursor_y += int(self.VSTEP * 1.25)
             cursor_x = self.HSTEP
 
@@ -189,9 +183,6 @@ class Browser:
                 cursor_y += int(self.VSTEP * 1.25)
                 cursor_x = self.HSTEP
                 continue
-            if c == "m" or c == "p":
-                cursor_x += self.font.measure(" ")
-
             cursor_x += letter_size
             display_list.append((c, cursor_x, cursor_y, font))
 
@@ -214,7 +205,10 @@ class Browser:
                 continue
             if y + self.VSTEP < self.scroll:
                 continue
-            self.canvas.create_text(x, y - self.scroll, text=c)
+            self.canvas.create_text(x, y - self.scroll, text=c, font=f)
+
+    def _get_highest_y_position(self) -> int:
+        return self.display_list[-1][2]
 
 
 def is_only_newlines(text: str) -> bool:
