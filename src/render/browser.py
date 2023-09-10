@@ -132,9 +132,9 @@ class Browser:
                     token.text, cursor_x, cursor_y, self.font, display_list
                 )
             elif isinstance(token, Tag):
-                if token.tag == "body":
+                if "body" in token.tag:
                     inside_body = True
-                elif token.tag == "/body":
+                elif "/body" in token.tag:
                     inside_body = False
                 self._tag_style(token)
         return display_list
