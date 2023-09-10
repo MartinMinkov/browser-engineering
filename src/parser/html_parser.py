@@ -36,8 +36,6 @@ class HTMLParser(Parser):
 
     def lex(self) -> List[Union[Text, Tag]]:
         document = self.resolver.resolve()
-        if self.resolver.url.is_view_source:
-            return [Text(document)]
         transformed = self._transform(document)
         return self._body(transformed)
 

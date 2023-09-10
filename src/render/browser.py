@@ -1,3 +1,4 @@
+import re
 import tkinter
 import tkinter.font
 from enum import Enum
@@ -128,9 +129,10 @@ class Browser:
             if isinstance(token, Text) and (
                 inside_body or self._check_is_view_source()
             ):
-                cursor_x, cursor_y = self._layout_text(
-                    token.text, cursor_x, cursor_y, self.font, display_list
-                )
+                for word in split_words_with_indentation(token.text):
+                    cursor_x, cursor_y = self._layout_text(
+                        word, cursor_x, cursor_y, self.font, display_list
+                    )
             elif isinstance(token, Tag):
                 if "body" in token.tag:
                     inside_body = True
@@ -148,7 +150,6 @@ class Browser:
             self.weight = "bold"
         elif tag.tag == "/b":
             self.weight = "normal"
-
         self.font = tkinter.font.Font(
             family="Times",
             size=self.font.actual()["size"],
@@ -217,3 +218,8 @@ def is_only_newlines(text: str) -> bool:
 
 def count_newlines(text: str) -> int:
     return text.count("\n")
+
+
+def split_words_with_indentation(text: str) -> List[str]:
+    words = re.findall(r"(\s*\S+)", text)
+    return words
