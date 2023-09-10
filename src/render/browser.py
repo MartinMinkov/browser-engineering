@@ -8,7 +8,7 @@ from src.parser.parser_factory import ParserFactory
 from src.render.tag import Tag
 from src.render.text import Text
 from src.resolver.resolver_factory import ResolverFactory
-from src.utils.url import AbstractURL
+from src.utils.url import URL, AbstractURL
 
 WIDTH = 800
 HEIGHT = 600
@@ -18,8 +18,8 @@ SCROLL_STEP = 100
 
 DEFUALT_FONT_SIZE = 16
 
-FontWeight = Optional[Literal["normal", "bold"]]
-FontStyle = Optional[Literal["roman", "italic"]]
+FontWeight = Literal["normal", "bold"]
+FontStyle = Literal["roman", "italic"]
 DisplayList = List[Tuple[str, int, int, Optional[tkinter.font.Font]]]
 BrowserContent = List[Union[Text, Tag]]
 
@@ -45,6 +45,7 @@ class Browser:
     window: tkinter.Tk
     canvas: tkinter.Canvas
     cache: BrowserCache
+    url: Optional[AbstractURL]
     display_list: DisplayList
     scroll: int
     content: BrowserContent
@@ -67,6 +68,7 @@ class Browser:
         self.style = "roman"
         self.HSTEP = self.font.measure(" ")
         self.VSTEP = self.font.metrics("linespace")
+        self.url = None
         self._init_window_bindings()
 
     def _init_window_bindings(self):
@@ -113,43 +115,53 @@ class Browser:
         self.scroll -= SCROLL_STEP
         self.draw()
 
+    def _check_is_view_source(
+        self,
+    ) -> bool:
+        return isinstance(self.url, URL) and self.url.is_view_source
+
     def _layout(self, tokens: BrowserContent) -> DisplayList:
         display_list: DisplayList = []
         cursor_x, cursor_y = self.HSTEP, self.VSTEP
+        inside_body = False
         for token in tokens:
-            if isinstance(token, Text):
-                updated_cursor_x, updated_cursor_y = cursor_x, cursor_y
-                if self.style is not None and self.weight is not None:
-                    self.font = tkinter.font.Font(
-                        family="Times",
-                        size=self.font.actual()["size"],
-                        weight=self.weight,
-                        slant=self.style,
-                    )
-                    updated_cursor_x, updated_cursor_y = self._layout_word(
-                        token.text, cursor_x, cursor_y, self.font, display_list
-                    )
-                else:
-                    updated_cursor_x, updated_cursor_y = self._layout_word(
-                        token.text, cursor_x, cursor_y, self.font, display_list
-                    )
-                cursor_x, cursor_y = updated_cursor_x, updated_cursor_y
+            if isinstance(token, Text) and (
+                inside_body or self._check_is_view_source()
+            ):
+                cursor_x, cursor_y = self._layout_text(
+                    token, cursor_x, cursor_y, display_list
+                )
             elif isinstance(token, Tag):
-                self.style, self.weight = self._tag_style(token)
+                if token.tag == "body":
+                    inside_body = True
+                elif token.tag == "/body":
+                    inside_body = False
+                self._tag_style(token)
         return display_list
 
-    def _tag_style(self, tag: Tag) -> Tuple[FontStyle, FontWeight]:
-        style: FontStyle = None
-        weight: FontWeight = None
+    def _layout_text(
+        self, token: Text, cursor_x: int, cursor_y: int, display_list: DisplayList
+    ) -> Tuple[int, int]:
+        return self._layout_word(
+            token.text, cursor_x, cursor_y, self.font, display_list
+        )
+
+    def _tag_style(self, tag: Tag):
         if tag.tag == "i":
-            style = "italic"
+            self.style = "italic"
         elif tag.tag == "/i":
-            style = "roman"
+            self.style = "roman"
         elif tag.tag == "b":
-            weight = "bold"
+            self.weight = "bold"
         elif tag.tag == "/b":
-            weight = "normal"
-        return style, weight
+            self.weight = "normal"
+
+        self.font = tkinter.font.Font(
+            family="Times",
+            size=self.font.actual()["size"],
+            weight=self.weight,
+            slant=self.style,
+        )
 
     def _layout_word(
         self,
@@ -188,11 +200,11 @@ class Browser:
         return cursor_x, cursor_y
 
     def load(self, url: AbstractURL):
-        resolver = ResolverFactory.create(url, self.cache)
+        self.url = url
+        resolver = ResolverFactory.create(self.url, self.cache)
         parser = ParserFactory.create(resolver)
-        document = parser.lex()
-        self.content = document
-        self.display_list = self._layout(document)
+        self.content = parser.lex()
+        self.display_list = self._layout(self.content)
         self.draw()
 
     def draw(self):
@@ -202,7 +214,7 @@ class Browser:
                 continue
             if y + self.VSTEP < self.scroll:
                 continue
-            self.canvas.create_text(x, y - self.scroll, text=c, font=f)
+            self.canvas.create_text(x, y - self.scroll, text=c)
 
 
 def is_only_newlines(text: str) -> bool:
