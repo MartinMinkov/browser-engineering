@@ -77,10 +77,12 @@ class Browser:
         self.window.bind(str(WindowBindings.UP), self._scroll_up)
         self.window.bind(str(WindowBindings.SCROLL_DOWN), self._scroll_down)
         self.window.bind(str(WindowBindings.SCROLL_UP), self._scroll_up)
-        self.window.bind(str(WindowBindings.RESIZE), self._resize)
         self.window.bind(str(WindowBindings.PLUS), self._increase_font_size)
         self.window.bind(str(WindowBindings.MINUS), self._decrease_font_size)
         self.window.bind(str(WindowBindings.CTRL_D), self._close_window)
+
+        # This really slows things down, should investigate why it's called so many times
+        # self.window.bind(str(WindowBindings.RESIZE), self._resize)
 
     def _close_window(self, _: tkinter.Event):
         self.window.destroy()
