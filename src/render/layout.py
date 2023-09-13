@@ -121,14 +121,24 @@ class Layout:
         return cursor_x, cursor_y
 
     def _tag_style(self, tag: Tag):
-        if tag.tag == "i":
+        t = tag.tag
+        if t == "i":
             self.style = "italic"
-        elif tag.tag == "/i":
+        elif t == "/i":
             self.style = "roman"
-        elif tag.tag == "b":
+        elif t == "b":
             self.weight = "bold"
-        elif tag.tag == "/b":
+        elif t == "/b":
             self.weight = "normal"
+        elif t == "small":
+            self.size -= 2
+        elif t == "/small":
+            self.size += 2
+        elif t == "big":
+            self.size += 4
+        elif t == "/big":
+            self.size -= 4
+
         self.font = tkinter.font.Font(
             family="Times",
             size=self.font.actual()["size"],
