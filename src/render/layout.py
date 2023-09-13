@@ -13,9 +13,6 @@ DisplayList = List[Tuple[str, int, int, Optional[tkinter.font.Font]]]
 BrowserContent = List[Union[Text, Tag]]
 
 
-DEFUALT_FONT_SIZE = 16
-
-
 class Layout:
     display_list: DisplayList
     url: Optional[AbstractURL]
@@ -46,10 +43,12 @@ class Layout:
         self.settings = settings
         self.canvas = canvas
 
-        self.size = DEFUALT_FONT_SIZE
+        self.size = self.settings.default_font_size
         self.weight = "normal"
         self.style = "roman"
-        self.font = tkinter.font.Font(family="Times", size=self.size)
+        self.font = tkinter.font.Font(
+            family="Times", size=self.size, weight=self.weight, slant=self.style
+        )
 
         self.scroll = 0
         self.window_height = self.settings.height

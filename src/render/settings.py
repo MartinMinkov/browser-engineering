@@ -1,9 +1,5 @@
-SCROLL_STEP = 100
-WIDTH = 800
-HEIGHT = 600
-
-
 class Settings:
+    default_font_size: int
     scroll_step: int
     width: int
     height: int
@@ -12,6 +8,7 @@ class Settings:
         self.scroll_step = 100
         self.width = 800
         self.height = 600
+        self.default_font_size = 16
 
     def resize(self, width: int, height: int):
         self.width = width
