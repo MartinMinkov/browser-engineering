@@ -9,12 +9,14 @@ from src.utils.url import URL, AbstractURL
 
 FontWeight = Literal["normal", "bold"]
 FontStyle = Literal["roman", "italic"]
-DisplayList = List[Tuple[str, int, int, Optional[tkinter.font.Font]]]
+DisplayList = List[Tuple[str, int, int, tkinter.font.Font]]
 BrowserContent = List[Union[Text, Tag]]
+TextLine = List[Tuple[str, int, tkinter.font.Font]]
 
 
 class Layout:
     display_list: DisplayList
+    line: TextLine
     url: Optional[AbstractURL]
 
     font: tkinter.font.Font
@@ -42,6 +44,8 @@ class Layout:
         self.url = url
         self.settings = settings
         self.canvas = canvas
+        self.display_list = []
+        self.line = []
 
         self.size = self.settings.default_font_size
         self.weight = "normal"
@@ -58,20 +62,19 @@ class Layout:
         self.cursor_x = self.HSTEP
         self.cursor_y = self.VSTEP
 
-        self.display_list = self._layout(tokens)
+        self._layout(tokens)
+        self.flush()
         self.draw()
 
-    def _layout(self, tokens: BrowserContent) -> DisplayList:
-        display_list: DisplayList = []
-        cursor_x, cursor_y = self.HSTEP, self.VSTEP
+    def _layout(self, tokens: BrowserContent):
         inside_body = False
         for token in tokens:
             if isinstance(token, Text) and (
                 inside_body or self._check_is_view_source()
             ):
                 for word in split_words_with_indentation(token.text):
-                    cursor_x, cursor_y = self._layout_text(
-                        word, cursor_x, cursor_y, self.font, display_list
+                    self._layout_text(
+                        word,
                     )
             elif isinstance(token, Tag):
                 if "body" in token.tag:
@@ -79,46 +82,41 @@ class Layout:
                 elif "/body" in token.tag:
                     inside_body = False
                 self._tag_style(token)
-        return display_list
 
     def resize(self, height: int, width: int):
         self.window_height = height
         self.window_width = width
         self.draw()
 
+    def flush(self):
+        if not self.line or len(self.line) == 0:
+            return
+        metrics = [font.metrics() for _, _, font in self.line]
+        max_ascent = max([metric["ascent"] for metric in metrics])
+        baseline = self.cursor_y + (1.25 * max_ascent)
+        for word, x, font in self.line:
+            y = baseline - font.metrics("ascent")
+            self.display_list.append((word, x, y, font))
+        self.cursor_x = self.HSTEP
+        self.cursor_y += int(self.VSTEP * 1.25)
+        self.line = []
+
     def _layout_text(
         self,
         word: str,
-        cursor_x: int,
-        cursor_y: int,
-        font: tkinter.font.Font,
-        display_list: DisplayList,
-    ) -> Tuple[int, int]:
+    ):
         # Only newlines
         if is_only_newlines(word):
-            cursor_y += int(self.VSTEP * 1.25) * count_newlines(word)
-            cursor_x = self.HSTEP
-            return cursor_x, cursor_y
+            self.cursor_y += int(self.VSTEP * 1.25) * count_newlines(word)
+            self.cursor_x = self.HSTEP
 
         word_size = self.font.measure(word)
-
         # Line wrap
-        if cursor_x + word_size > self.window_width - self.HSTEP:
-            cursor_y += int(self.VSTEP * 1.25)
-            cursor_x = self.HSTEP
+        if self.cursor_x + word_size > self.window_width - self.HSTEP:
+            self.flush()
 
-        for c in word:
-            letter_size = self.font.measure(c)
-            if c == "\n":
-                cursor_y += int(self.VSTEP * 1.25)
-                cursor_x = self.HSTEP
-                continue
-            cursor_x += letter_size
-            display_list.append((c, cursor_x, cursor_y, font))
-
-        cursor_x += self.font.measure(" ")
-        display_list.append((" ", cursor_x, cursor_y, font))
-        return cursor_x, cursor_y
+        self.cursor_x += word_size
+        self.line.append((word, self.cursor_x, self.font))
 
     def _tag_style(self, tag: Tag):
         t = tag.tag
@@ -138,6 +136,11 @@ class Layout:
             self.size += 4
         elif t == "/big":
             self.size -= 4
+        elif t == "br":
+            self.flush()
+        elif t == "/p":
+            self.flush()
+            self.cursor_y += self.VSTEP
 
         self.font = tkinter.font.Font(
             family="Times",
