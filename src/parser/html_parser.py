@@ -4,6 +4,7 @@ from typing import List, Union
 from src.parser.parser import Parser
 from src.render.tag import Tag
 from src.render.text import Text
+from src.resolver.file_resolver import FileResolver
 from src.resolver.http_resolver import HTTPResolver
 
 
@@ -27,10 +28,10 @@ class HTMLEntity(Enum):
 
 
 class HTMLParser(Parser):
-    resolver: HTTPResolver
+    resolver: Union[HTTPResolver, FileResolver]
     inside_tag: bool
 
-    def __init__(self, resolver: HTTPResolver):
+    def __init__(self, resolver: Union[HTTPResolver, FileResolver]):
         self.resolver = resolver
         self.inside_tag = False
 

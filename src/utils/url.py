@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
+from os import path
 from typing import Dict, Tuple
 
 
@@ -122,6 +123,8 @@ class FileURL(AbstractURL):
 
     def __init__(self, url: str):
         self.scheme, self.path = self._extract_scheme_and_path(url)
+        if not path.exists(self.path):
+            raise ValueError("Invalid file URL")
 
     def _extract_scheme_and_path(self, url: str) -> Tuple[Scheme, str]:
         scheme_str, path = url.split("://", 1)
