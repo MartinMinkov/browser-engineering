@@ -108,16 +108,17 @@ class Layout:
         token: str,
     ):
         whitespace_size = self.font.measure(" ")
-        for word in token.split(" "):
-            word_size = self.font.measure(word)
+        token_size = self.font.measure(token)
+        words = token.split(" ")
+        num_words = len(words)
+
+        for word in words:
+            word_size = int(token_size / num_words)
             if self.cursor_x + word_size > self.window_width - self.HSTEP:
                 self.flush()
 
             self.line.append((word, self.cursor_x, self.font))
             self.cursor_x += word_size + whitespace_size
-            # TODO Word spacing is all messed up with lower spaces, too lazy to fix.
-            if word_size < 20:
-                self.cursor_x += word_size
 
     def draw(self):
         self.canvas.delete("all")
