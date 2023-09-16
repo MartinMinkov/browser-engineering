@@ -1,7 +1,7 @@
-from typing import List, Union
+from typing import List
 
 from src.parser.parser import Parser
-from src.render.tag import Tag
+from src.render.html_element import HTMLElement
 from src.render.text import Text
 from src.resolver.data_resolver import DataResolver
 
@@ -12,5 +12,5 @@ class DataParser(Parser):
     def __init__(self, resolver: DataResolver):
         self.resolver = resolver
 
-    def lex(self) -> List[Union[Text, Tag]]:
-        return [Text(self.resolver.resolve())]
+    def lex(self) -> HTMLElement:
+        return HTMLElement(Text(self.resolver.resolve(), None, []))

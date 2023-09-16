@@ -1,16 +1,16 @@
 import re
 import tkinter.font
-from typing import Dict, List, Literal, Optional, Tuple, Union
+from typing import Dict, List, Literal, Optional, Tuple
 
+from src.render.element import Element
+from src.render.html_element import HTMLElement
 from src.render.settings import Settings
-from src.render.tag import Tag
 from src.render.text import Text
 from src.utils.url import URL, AbstractURL
 
 FontWeight = Literal["normal", "bold"]
 FontStyle = Literal["roman", "italic"]
 DisplayList = List[Tuple[str, int, int, tkinter.font.Font]]
-BrowserContent = List[Union[Text, Tag]]
 TextLine = List[Tuple[str, int, tkinter.font.Font]]
 
 
@@ -24,7 +24,7 @@ class Layout:
     weight: FontWeight
     size: int
     style: FontStyle
-    content: BrowserContent
+    content: HTMLElement
 
     window_height: int
     window_width: int
@@ -38,10 +38,10 @@ class Layout:
         self,
         url: AbstractURL,
         canvas: tkinter.Canvas,
-        tokens: BrowserContent,
+        element: HTMLElement,
         settings: Settings,
     ):
-        self.content = tokens
+        self.content = element
         self.url = url
         self.settings = settings
         self.canvas = canvas
@@ -64,23 +64,24 @@ class Layout:
         self.cursor_x = self.HSTEP
         self.cursor_y = self.VSTEP
 
-        self._layout(tokens)
+        self._layout(element)
         self.flush()
         self.draw()
 
-    def _layout(self, tokens: BrowserContent):
+    def _layout(self, top_html_element: HTMLElement):
         inside_body = False
-        for token in tokens:
-            if isinstance(token, Text) and (
+        for element in top_html_element.element.children:
+            if isinstance(element, Text) and (
                 inside_body or self._check_is_view_source()
             ):
-                self._layout_text(token.text)
-            elif isinstance(token, Tag):
-                if "body" in token.tag:
+                self._layout_text(element.text)
+            elif isinstance(element, Element):
+                if "body" in element.tag:
                     inside_body = True
-                elif "/body" in token.tag:
+                elif "/body" in element.tag:
                     inside_body = False
-                self._tag_style(token)
+                self._tag_style(element)
+            self._layout(HTMLElement(element))
 
     def resize(self, height: int, width: int):
         if (self.window_height == height) and (self.window_width == width):
@@ -129,7 +130,7 @@ class Layout:
                 continue
             self.canvas.create_text(x, y - self.scroll, text=c, font=f)
 
-    def _tag_style(self, tag: Tag):
+    def _tag_style(self, tag: Element):
         t = tag.tag
         if t == "i":
             self.style = "italic"

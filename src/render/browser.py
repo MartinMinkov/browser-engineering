@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Dict
 
 from src.networking.cache import BrowserCache
+from src.parser.html_parser import print_tree
 from src.parser.parser_factory import ParserFactory
 from src.render.layout import Layout
 from src.render.settings import Settings
@@ -86,4 +87,6 @@ class Browser:
     def load(self, url: AbstractURL):
         resolver = ResolverFactory.create(url, self.cache)
         parser = ParserFactory.create(resolver)
-        self.layouts[url] = Layout(url, self.canvas, parser.lex(), self.settings)
+        html_element = parser.lex()
+        print_tree(html_element)
+        self.layouts[url] = Layout(url, self.canvas, html_element, self.settings)
