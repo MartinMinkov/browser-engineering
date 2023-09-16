@@ -7,7 +7,7 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/src/browser-engineering/main.py",
-            "args": [""],
+            "args": ["file:///home/martin/Code/projects/python/browser-engineering/static/text_sizes.html"],
             "console": "integratedTerminal",
             "justMyCode": true,
             "env": {"PYTHONPATH": "${cwd}"

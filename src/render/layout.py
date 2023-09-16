@@ -1,6 +1,6 @@
 import re
 import tkinter.font
-from typing import List, Literal, Optional, Tuple, Union
+from typing import Dict, List, Literal, Optional, Tuple, Union
 
 from src.render.settings import Settings
 from src.render.tag import Tag
@@ -19,6 +19,7 @@ class Layout:
     line: TextLine
     url: Optional[AbstractURL]
 
+    font_cache: Dict[Tuple[FontWeight, FontStyle, int], tkinter.font.Font]
     font: tkinter.font.Font
     weight: FontWeight
     size: int
@@ -53,6 +54,7 @@ class Layout:
         self.font = tkinter.font.Font(
             family="Times", size=self.size, weight=self.weight, slant=self.style
         )
+        self.font_cache = {}
 
         self.scroll = 0
         self.window_height = self.settings.height
@@ -117,6 +119,15 @@ class Layout:
             if word_size < 20:
                 self.cursor_x += word_size
 
+    def draw(self):
+        self.canvas.delete("all")
+        for c, x, y, f in self.display_list:
+            if y > self.scroll + self.window_height:
+                continue
+            if y + self.VSTEP < self.scroll:
+                continue
+            self.canvas.create_text(x, y - self.scroll, text=c, font=f)
+
     def _tag_style(self, tag: Tag):
         t = tag.tag
         if t == "i":
@@ -140,13 +151,7 @@ class Layout:
         elif t == "/p":
             self.flush()
             self.cursor_y += self.VSTEP
-
-        self.font = tkinter.font.Font(
-            family="Times",
-            size=self.size,
-            weight=self.weight,
-            slant=self.style,
-        )
+        self.font = self.get_font(self.size, self.weight, self.style)
 
     def increase_font_size(self):
         self.font = tkinter.font.Font(size=self.size + 1)
@@ -180,14 +185,18 @@ class Layout:
     def _get_highest_y_position(self) -> int:
         return self.display_list[-1][2]
 
-    def draw(self):
-        self.canvas.delete("all")
-        for c, x, y, f in self.display_list:
-            if y > self.scroll + self.window_height:
-                continue
-            if y + self.VSTEP < self.scroll:
-                continue
-            self.canvas.create_text(x, y - self.scroll, text=c, font=f)
+    def get_font(
+        self, size: int, font_weight: FontWeight, slant: FontStyle
+    ) -> tkinter.font.Font:
+        key = (font_weight, slant, size)
+        if key not in self.font_cache:
+            self.font_cache[key] = tkinter.font.Font(
+                family="Times",
+                size=self.size,
+                weight=self.weight,
+                slant=self.style,
+            )
+        return self.font_cache[key]
 
 
 def is_only_newlines(text: str) -> bool:
