@@ -57,7 +57,7 @@ class Layout:
         self.scroll = 0
         self.window_height = self.settings.height
         self.window_width = self.settings.width
-        self.HSTEP = self.font.measure(" ")
+        self.HSTEP = 30
         self.VSTEP = self.font.metrics("linespace")
         self.cursor_x = self.HSTEP
         self.cursor_y = self.VSTEP
@@ -72,10 +72,7 @@ class Layout:
             if isinstance(token, Text) and (
                 inside_body or self._check_is_view_source()
             ):
-                for word in split_words_with_indentation(token.text):
-                    self._layout_text(
-                        word,
-                    )
+                self._layout_text(token.text)
             elif isinstance(token, Tag):
                 if "body" in token.tag:
                     inside_body = True
@@ -84,8 +81,11 @@ class Layout:
                 self._tag_style(token)
 
     def resize(self, height: int, width: int):
+        if (self.window_height == height) and (self.window_width == width):
+            return
         self.window_height = height
         self.window_width = width
+        self._layout(self.content)
         self.draw()
 
     def flush(self):
@@ -97,26 +97,25 @@ class Layout:
         for word, x, font in self.line:
             y = baseline - font.metrics("ascent")
             self.display_list.append((word, x, y, font))
+        self.line = []
         self.cursor_x = self.HSTEP
         self.cursor_y += int(self.VSTEP * 1.25)
-        self.line = []
 
     def _layout_text(
         self,
-        word: str,
+        token: str,
     ):
-        # Only newlines
-        if is_only_newlines(word):
-            self.cursor_y += int(self.VSTEP * 1.25) * count_newlines(word)
-            self.cursor_x = self.HSTEP
+        whitespace_size = self.font.measure(" ")
+        for word in token.split(" "):
+            word_size = self.font.measure(word)
+            if self.cursor_x + word_size > self.window_width - self.HSTEP:
+                self.flush()
 
-        word_size = self.font.measure(word)
-        # Line wrap
-        if self.cursor_x + word_size > self.window_width - self.HSTEP:
-            self.flush()
-
-        self.cursor_x += word_size
-        self.line.append((word, self.cursor_x, self.font))
+            self.line.append((word, self.cursor_x, self.font))
+            self.cursor_x += word_size + whitespace_size
+            # TODO Word spacing is all messed up with lower spaces, too lazy to fix.
+            if word_size < 20:
+                self.cursor_x += word_size
 
     def _tag_style(self, tag: Tag):
         t = tag.tag
@@ -144,19 +143,19 @@ class Layout:
 
         self.font = tkinter.font.Font(
             family="Times",
-            size=self.font.actual()["size"],
+            size=self.size,
             weight=self.weight,
             slant=self.style,
         )
 
     def increase_font_size(self):
-        self.font = tkinter.font.Font(size=self.font.actual()["size"] + 1)
+        self.font = tkinter.font.Font(size=self.size + 1)
         self.HSTEP = self.HSTEP + 2
         self.display_list = self._layout(self.content)
         self.draw()
 
     def decrease_font_size(self):
-        self.font = tkinter.font.Font(size=self.font.actual()["size"] - 1)
+        self.font = tkinter.font.Font(size=self.size - 1)
         self.HSTEP = self.HSTEP - 2
         self.display_list = self._layout(self.content)
         self.draw()

@@ -46,17 +46,22 @@ class HTMLParser(Parser):
         for char in document:
             if char == "<":
                 self.inside_tag = True
+                text_buffer = text_buffer.strip()
                 if text_buffer:
                     tokens.append(Text(text_buffer))
                 text_buffer = ""
             elif char == ">":
                 self.inside_tag = False
-                tokens.append(Tag(text_buffer))
+                text_buffer = text_buffer.strip()
+                if text_buffer:
+                    tokens.append(Tag(text_buffer))
                 text_buffer = ""
             else:
                 text_buffer += char
         if not self.inside_tag and text_buffer:
-            tokens.append(Text(text_buffer))
+            text_buffer = text_buffer.strip()
+            if text_buffer:
+                tokens.append(Text(text_buffer))
         return tokens
 
     def _transform(self, document: str) -> str:
