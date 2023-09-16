@@ -64,31 +64,25 @@ class Layout:
         self.cursor_x = self.HSTEP
         self.cursor_y = self.VSTEP
 
-        self._layout(element)
+        self.recurse(element)
         self.flush()
         self.draw()
 
-    def _layout(self, top_html_element: HTMLElement):
-        inside_body = False
-        for element in top_html_element.element.children:
-            if isinstance(element, Text) and (
-                inside_body or self._check_is_view_source()
-            ):
-                self._layout_text(element.text)
-            elif isinstance(element, Element):
-                if "body" in element.tag:
-                    inside_body = True
-                elif "/body" in element.tag:
-                    inside_body = False
-                self._tag_style(element)
-            self._layout(HTMLElement(element))
+    def recurse(self, tree: HTMLElement):
+        if isinstance(tree.element, Text):
+            self._layout_text(tree.element.text)
+        elif isinstance(tree.element, Element):
+            self.open_tag(tree.element)
+            for child in tree.element.children:
+                self.recurse(HTMLElement(child))
+            self.close_tag(tree.element)
 
     def resize(self, height: int, width: int):
         if (self.window_height == height) and (self.window_width == width):
             return
         self.window_height = height
         self.window_width = width
-        self._layout(self.content)
+        self.recurse(self.content)
         self.draw()
 
     def flush(self):
@@ -130,27 +124,33 @@ class Layout:
                 continue
             self.canvas.create_text(x, y - self.scroll, text=c, font=f)
 
-    def _tag_style(self, tag: Element):
-        t = tag.tag
-        if t == "i":
+    def open_tag(self, element: Element):
+        tag = element.tag
+        if tag == "i":
             self.style = "italic"
-        elif t == "/i":
-            self.style = "roman"
-        elif t == "b":
+        elif tag == "b":
             self.weight = "bold"
-        elif t == "/b":
-            self.weight = "normal"
-        elif t == "small":
+        elif tag == "small":
             self.size -= 2
-        elif t == "/small":
-            self.size += 2
-        elif t == "big":
+        elif tag == "big":
             self.size += 4
-        elif t == "/big":
-            self.size -= 4
-        elif t == "br":
+        elif tag == "br":
             self.flush()
-        elif t == "/p":
+        self.font = self.get_font(self.size, self.weight, self.style)
+
+    def close_tag(self, element: Element):
+        tag = element.tag
+        if tag == "i":
+            self.style = "roman"
+        elif tag == "b":
+            self.weight = "normal"
+        elif tag == "small":
+            self.size += 2
+        elif tag == "big":
+            self.size -= 4
+        elif tag == "br":
+            self.flush()
+        elif tag == "/p":
             self.flush()
             self.cursor_y += self.VSTEP
         self.font = self.get_font(self.size, self.weight, self.style)
