@@ -34,6 +34,18 @@ class HTMLParser(Parser):
     unfinished_tags: List[HTMLElement]
     inside_tag: bool
 
+    HEAD_TAGS = [
+        "base",
+        "basefont",
+        "bgsound",
+        "noscript",
+        "link",
+        "meta",
+        "title",
+        "style",
+        "script",
+    ]
+
     def __init__(self, resolver: Union[HTTPResolver, FileResolver]):
         self.resolver = resolver
         self.unfinished_tags = []
@@ -68,6 +80,7 @@ class HTMLParser(Parser):
         return self.finish()
 
     def add_text(self, text: str):
+        self.implicit_tags(None)
         parent = self.unfinished_tags[-1]
         node = Text(text, parent.element, [])
         parent.element.children.append(node)
@@ -77,12 +90,33 @@ class HTMLParser(Parser):
         if tag.startswith("!"):
             # Ignore DOCTYPE and comments
             return
+        self.implicit_tags(tag)
         if tag.startswith("/"):
             self.close_tag()
         elif HTMLElement.is_self_closing(tag):
             self.self_closing_tag(tag, attributes)
         else:
             self.add_tag_to_parent(tag)
+
+    def implicit_tags(self, tag: Union[str, None]):
+        while True:
+            open_tags: List[str] = []
+            for t in self.unfinished_tags:
+                if isinstance(t.element, Element):
+                    open_tags.append(t.element.tag)
+            if open_tags == [] and tag != "html":
+                self.add_tag("html")
+            elif open_tags == ["html"] and tag not in ["head", "body", "/html"]:
+                if tag in self.HEAD_TAGS:
+                    self.add_tag("head")
+                else:
+                    self.add_tag("body")
+            elif (
+                open_tags == ["html", "head"] and tag not in ["/head"] + self.HEAD_TAGS
+            ):
+                self.add_tag("/head")
+            else:
+                break
 
     def close_tag(self):
         if len(self.unfinished_tags) == 1:
