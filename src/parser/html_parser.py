@@ -19,7 +19,7 @@ class HTMLEntity(Enum):
     MDash = ("&mdash;", "—")
     Copy = ("&copy;", "©")
 
-    def conatins(self, value: str) -> bool:
+    def contains(self, value: str) -> bool:
         return value in self.value
 
     def __str__(self):
@@ -33,6 +33,7 @@ class HTMLParser(Parser):
     resolver: Union[HTTPResolver, FileResolver]
     unfinished_tags: List[HTMLElement]
     inside_tag: bool
+    inside_comment: bool
 
     HEAD_TAGS = [
         "base",
@@ -50,6 +51,7 @@ class HTMLParser(Parser):
         self.resolver = resolver
         self.unfinished_tags = []
         self.inside_tag = False
+        self.inside_comment = False
 
     def lex(self) -> HTMLElement:
         document = self.resolver.resolve()
@@ -58,7 +60,11 @@ class HTMLParser(Parser):
 
     def _parse(self, document: str) -> HTMLElement:
         text_buffer = ""
-        for char in document:
+        for idx, char in enumerate(document):
+            self.handle_comment(document, idx)
+            if self.inside_comment:
+                continue
+
             if char == "<":
                 self.inside_tag = True
                 text_buffer = text_buffer.strip()
@@ -79,6 +85,18 @@ class HTMLParser(Parser):
                 self.add_tag(text_buffer)
         return self.finish()
 
+    def handle_comment(self, document: str, idx: int):
+        if self.is_comment_beginning(document, idx):
+            self.inside_comment = True
+        elif self.is_comment_end(document, idx):
+            self.inside_comment = False
+
+    def is_comment_beginning(self, document: str, idx: int) -> bool:
+        return self._peek_with_offset(document, idx, len("!--")) == "!--"
+
+    def is_comment_end(self, document: str, idx: int) -> bool:
+        return self._peek_with_offset(document, idx, len("-->")) == "-->"
+
     def add_text(self, text: str):
         self.implicit_tags(None)
         parent = self.unfinished_tags[-1]
@@ -88,7 +106,7 @@ class HTMLParser(Parser):
     def add_tag(self, tag: str):
         tag, attributes = self.get_attributes(tag)
         if tag.startswith("!"):
-            # Ignore DOCTYPE and comments
+            # Ignore DOCTYPE
             return
         self.implicit_tags(tag)
         if tag.startswith("/"):
@@ -171,7 +189,7 @@ class HTMLParser(Parser):
         while idx < len(document):
             if document[idx] == "&":
                 for entity in HTMLEntity:
-                    if entity.conatins(document[idx : idx + len(str(entity))]):
+                    if entity.contains(document[idx : idx + len(str(entity))]):
                         transformed_document += entity.symbol()
                         idx += len(str(entity))
                         break
@@ -180,7 +198,17 @@ class HTMLParser(Parser):
         return transformed_document
 
     def _is_start_of_tag(self, document: str, idx: int, tag: str) -> bool:
-        return document[idx : idx + len(tag) + 1] == f"<{tag}"
+        return self._peek(document, idx) == f"<{tag}"
+
+    def _peek(self, document: str, idx: int) -> str:
+        if idx + 1 > len(document):
+            return ""
+        return document[idx : idx + 1]
+
+    def _peek_with_offset(self, document: str, idx: int, offset: int) -> str:
+        if idx + offset > len(document):
+            return ""
+        return document[idx : idx + offset]
 
 
 def print_tree(node: HTMLElement, indent: int = 0):
