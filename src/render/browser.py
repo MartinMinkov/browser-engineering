@@ -1,12 +1,12 @@
 import tkinter
 import tkinter.font
 from enum import Enum
-from typing import Dict
 
 from src.networking.cache import BrowserCache
 from src.parser.html_parser import print_tree
 from src.parser.parser_factory import ParserFactory
-from src.render.layout import Layout
+from src.render.document_layout import DocumentLayout
+from src.render.layout import BlockLayout, DisplayList
 from src.render.settings import Settings
 from src.resolver.resolver_factory import ResolverFactory
 from src.utils.url import AbstractURL
@@ -33,17 +33,22 @@ class Browser:
     window: tkinter.Tk
     canvas: tkinter.Canvas
     cache: BrowserCache
+    document: DocumentLayout
+    display_list: DisplayList
+
     scroll: int
-    layouts: Dict[AbstractURL, Layout]
     settings: Settings
 
     def __init__(self):
-        self.settings = Settings()
         self.window = tkinter.Tk()
+        self.settings = Settings()
         self.canvas = tkinter.Canvas(
-            self.window, width=self.settings.width, height=self.settings.height
+            self.window,
+            width=self.settings.window_width,
+            height=self.settings.window_height,
         )
-        self.layouts = {}
+
+        self.scroll = 0
         self.canvas.pack(fill=tkinter.BOTH, expand=tkinter.YES)
         self.cache = BrowserCache()
         self._init_window_bindings()
@@ -60,33 +65,62 @@ class Browser:
         # TODO This really slows things down, should investigate why it's called so many times
         # self.window.bind(str(WindowBindings.RESIZE), self._resize)
 
+    def load(self, url: AbstractURL):
+        resolver = ResolverFactory.create(url, self.cache)
+        parser = ParserFactory.create(resolver)
+        nodes = parser.lex()
+        print_tree(nodes)
+
+        self.document = DocumentLayout(nodes, self.settings)
+        self.document.layout()
+        self.display_list = self.document.display_list
+        self.draw()
+
+    def draw(self):
+        self.canvas.delete("all")
+        for c, x, y, f in self.display_list:
+            if y > self.scroll + self.settings.window_height:
+                continue
+            if y + self.settings.VSTEP < self.scroll:
+                continue
+            self.canvas.create_text(x, y - self.scroll, text=c, font=f)
+
     def _close_window(self, _: tkinter.Event):
         self.window.destroy()
 
     def _increase_font_size(self, _: tkinter.Event):
-        for layout in self.layouts.values():
-            layout.increase_font_size()
+        self.settings.increase_font_size()
+        self.document.increase_font_size()
+        self.display_list = self.document.display_list
+        self.draw()
 
     def _decrease_font_size(self, _: tkinter.Event):
-        for layout in self.layouts.values():
-            layout.decrease_font_size()
+        self.settings.decrease_font_size()
+        self.document.decrease_font_size()
+        self.display_list = self.document.display_list
+        self.draw()
 
     def _resize(self, event: tkinter.Event):
+        if (self.settings.window_height == event.height) and (
+            self.settings.window_width == event.width
+        ):
+            return
         self.settings.resize(event.width, event.height)
-        for layout in self.layouts.values():
-            layout.resize(self.settings.height, self.settings.width)
+        self.draw()
 
     def _scroll_down(self, _: tkinter.Event):
-        for layout in self.layouts.values():
-            layout.scroll_down()
+        if (
+            self.scroll + self.settings.scroll_step
+        ) > self._get_highest_y_position() - self.settings.scroll_step:
+            return
+        self.scroll += self.settings.scroll_step
+        self.draw()
 
     def _scroll_up(self, _: tkinter.Event):
-        for layout in self.layouts.values():
-            layout.scroll_up()
+        if (self.scroll - self.settings.scroll_step) < 0:
+            return
+        self.scroll -= self.settings.scroll_step
+        self.draw()
 
-    def load(self, url: AbstractURL):
-        resolver = ResolverFactory.create(url, self.cache)
-        parser = ParserFactory.create(resolver)
-        html_element = parser.lex()
-        print_tree(html_element)
-        self.layouts[url] = Layout(url, self.canvas, html_element, self.settings)
+    def _get_highest_y_position(self) -> int:
+        return self.display_list[-1][2]
